@@ -1,0 +1,60 @@
+1) What this utility is for 
+
+CAN and UART tests executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
+The board which is under test is called DUT board. The board which is helping to execute test cases is called assist board.
+
+
+2) Sample of test cases :
+Send data from DUT board. Check data is received at assist board.
+
+Step a) Command to run in DUT board
+cd /opt/ltp ; export LTPROOT=$(pwd) ; export PATH=$PATH:$(pwd)/testcases/bin ; cd testcases/bin ; can_test.sh can0 1
+
+Step b) Command to run in assist board
+cd /opt/ltp ; export LTPROOT=$(pwd) ; export PATH=$PATH:$(pwd)/testcases/bin ; cd testcases/bin ; can_test.sh can0 setup ; candump can0
+
+Step c) Manually/automatically verify data sent at DUT board has arrived to assist board.
+
+
+3) How to compile the code :
+There are two executables. 1) dut-command 2) assist-server
+
+Compiler option is provided in make file. Add your compiler and build.
+Make file is provided. Use "make clean ; make" to compile the code
+
+
+4) How to run the utility
+
+At assist board :
+./assist-server & 
+nohup ./assist-server & 
+
+
+At DUT side : ./dut-client -h
+./dut-client "any-command"
+./dut-client "ConsoleLogsRequest"
+./dut-client "ConsoleLogsClear"
+./dut-client "AssistBoardReboot"
+./dut-client "AssistBoardHealth"
+./dut-client "StartProcess"
+./dut-client "CheckProcessRunning"
+./dut-client "KillRunningProcess"
+
+
+5) How to use the utility in test automation
+
+Step a) At assist board :
+./assist-server & 
+
+Step b) At DUT board test.sh :
+
+#!/bin/sh
+
+./dut-client "ConsoleLogsClear"
+./dut-client "cat /proc/cpuinfo"
+output=`./dut-client "ConsoleLogsRequest`
+if [[ $output == *"test-buffer"* ]]; then
+	echo "Test pass"
+else
+	echo "Test fail"
+fi

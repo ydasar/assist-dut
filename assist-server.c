@@ -1,4 +1,11 @@
 /** @file assist-server.c
+ *
+ *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *
+ *  This file is licensed under the terms of the GNU General Public License
+ *  version 2.  This program  is licensed "as is" without any warranty of any
+ *  kind, whether express or implied.
+ *
  *  @brief Starting point of execution for assist-server. Create socket and wait in while loop.
  *
  *  main() function create a socket (tcp/ip) and go in while loop for accepting connection.
@@ -24,48 +31,48 @@
 
 int main(void) 
 { 
-	int sockfd, connfd, sockaddr_len; 
-	struct sockaddr_in dut_addr; 
+    int sockfd, connfd, sockaddr_len; 
+    struct sockaddr_in dut_addr; 
 
-	if((sockfd = create_socket()) == -1)
-	{
-		printf("\nAssist : Create socket fail\n");
-		return -1;
-	}
-	#ifdef DEBUG
-	else
-	{
-		printf("\nAssist : Create socket pass\n");
-	}
-	#endif
+    if((sockfd = create_socket()) == -1)
+    {
+        printf("\nAssist : Create socket fail\n");
+        return -1;
+    }
+    #ifdef DEBUG
+    else
+    {
+        printf("\nAssist : Create socket pass\n");
+    }
+    #endif
 
-	// loop indefinitely for wait or listen or receive mode
-	while(1)
-	{
-		sockaddr_len = sizeof(dut_addr); 
-		
-		// Accept connection from peer
-		if((connfd = accept(sockfd, (struct sockaddr *)&dut_addr, (socklen_t*)&sockaddr_len)) < 0) 
-		{ 
-			printf("\nAssist : Accept fail\n"); 
-			continue; 
-		} 
-		else
-		{
-			printf("\n============New connection==============\n"); 
-		}
+    // loop indefinitely for wait or listen or receive mode
+    while(1)
+    {
+        sockaddr_len = sizeof(dut_addr); 
+        
+        // Accept connection from peer
+        if((connfd = accept(sockfd, (struct sockaddr *)&dut_addr, (socklen_t*)&sockaddr_len)) < 0) 
+        { 
+            printf("\nAssist : Accept fail\n"); 
+            continue; 
+        } 
+        else
+        {
+            printf("\n============New connection==============\n"); 
+        }
 
-		// Start receiving the requests or commands from DUT board
-		if(service_request(connfd) == -1)
-		{
-			printf("\nAssist : Something went wrong at assist board. Please check\n");
-			
-			if(write_socket("\nAssist : Something went wrong at assist board. Please check. AssistDataEnds", connfd) != 0)
-			{
-				continue;
-			}
-		} 
-	}
-	close(sockfd);
-	return 0;
+        // Start receiving the requests or commands from DUT board
+        if(service_request(connfd) == -1)
+        {
+            printf("\nAssist : Something went wrong at assist board. Please check\n");
+            
+            if(write_socket("\nAssist : Something went wrong at assist board. Please check. AssistDataEnds", connfd) != 0)
+            {
+                continue;
+            }
+        } 
+    }
+    close(sockfd);
+    return 0;
 }

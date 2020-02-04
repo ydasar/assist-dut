@@ -26,10 +26,10 @@
 #include <netpacket/packet.h>
 
 /* Defines or data */
-#define MAX_SIZE 1024
+#define MAX_SIZE 4096
 #define PORT 5678 
 #define SA struct sockaddr 
-#define ASSIST_CONF_FILE "./assist_address.conf"
+#define ASSIST_CONF_FILE "/home/root/assist_address.conf"
 #define CONSOLE_LOG_FILE "/tmp/cmd_console_logs"
 
 

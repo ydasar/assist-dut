@@ -1,7 +1,7 @@
 1) What this utility is for 
 
-CAN and UART tests executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
-The board which is under test is called DUT board. The board which is helping to execute test cases is called assist board.
+CAN and UART tests are executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
+The board which is under test is called DUT board. The board which is helping to execute the tests is called assist board.
 
 
 2) Sample of test cases :
@@ -26,19 +26,23 @@ Make file is provided. Use "make clean ; make" to compile the code
 4) How to run the utility
 
 At assist board :
-./assist-server & 
 nohup ./assist-server & 
 
-
+# Help
 At DUT side : ./dut-client -h
-./dut-client "any-command"
-./dut-client "ConsoleLogsRequest"
-./dut-client "ConsoleLogsClear"
-./dut-client "AssistBoardReboot"
-./dut-client "AssistBoardHealth"
-./dut-client "StartProcess"
-./dut-client "CheckProcessRunning"
-./dut-client "KillRunningProcess"
+
+# Run command
+/home/root/dut-client "command"
+Example : /home/root/dut-client "candump can0"
+
+# Request for assit board console logs
+/home/root/dut-client "ConsoleLogsRequest"
+
+# Request for clearing console logs
+/home/root/dut-client "ConsoleLogsClear"
+
+# Check the assist board health status
+/home/root/dut-client "AssistBoardHealth"
 
 
 5) How to use the utility in test automation
@@ -54,7 +58,10 @@ Step b) At DUT board test.sh :
 ./dut-client "cat /proc/cpuinfo"
 output=`./dut-client "ConsoleLogsRequest`
 if [[ $output == *"test-buffer"* ]]; then
-	echo "Test pass"
+    echo "Test pass"
 else
-	echo "Test fail"
+    echo "Test fail"
 fi
+
+6) Limitations/Recommendations
+Assist baord and DUT board should be in same subnet

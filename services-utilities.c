@@ -105,7 +105,7 @@ int request_console_logs(int sockfd)
 char* collect_console_logs(void)
 {
     char *console_logs = NULL; 
-    FILE *fd_cmd_output;
+    FILE *fd_cmd_output = NULL;
     unsigned console_logs_len = 0; 
 
     /* Collect the console logs */
@@ -181,7 +181,7 @@ char* collect_console_logs(void)
 
 int clear_console_logs(int sockfd)
 {
-    FILE *fd_cmd_output;
+    FILE *fd_cmd_output= NULL;
 
     if((fd_cmd_output = fopen(CONSOLE_LOG_FILE, "w")) == NULL)
     {
@@ -227,7 +227,7 @@ int health_check_assist_board(int sockfd)
 
 int execute_request(char* request, int sockfd)
 {   
-    char tmpBuf[1024];  
+    char tmpBuf[1024] = {0};  
 
     /* Append additional parameters to collect the console logs */
     /* sprintf(tmpBuf, "timeout 10s %s 2>&1 | tee %s", request, CONSOLE_LOG_FILE); */
@@ -276,7 +276,7 @@ int execute_request(char* request, int sockfd)
 
 int reboot_assist_board(int sockfd)
 {
-    char tmpBuf[256];
+    char tmpBuf[256] = {0};
     int retVal = -1;
 
     sprintf(tmpBuf, "reboot -h now");
@@ -311,7 +311,7 @@ int reboot_assist_board(int sockfd)
 
 int start_process(char* request, int sockfd)
 {
-    char tmpBuf[256];
+    char tmpBuf[256] = {0};
     int retVal = -1;
 
     sprintf(tmpBuf, "%s", &request[13]);
@@ -346,7 +346,7 @@ int start_process(char* request, int sockfd)
 
 int check_process_running(char* request, int sockfd)
 {
-    char tmpBuf[256];
+    char tmpBuf[256] = {0};
     int retVal = -1;
 
     /* strcpy(process, &request[20]); */
@@ -383,7 +383,7 @@ int check_process_running(char* request, int sockfd)
 
 int kill_running_process(char* request, int sockfd)
 {
-    char tmpBuf[256];
+    char tmpBuf[256] = {0};
     int retVal = -1;
 
     sprintf(tmpBuf, "pkill %s", &request[19]);

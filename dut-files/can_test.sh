@@ -592,7 +592,7 @@ test_can_08()
     $output"
 
     #if [ "$Rnt" = "y" ]                                                        
-    if [[ $output != *"123   [8]  11 22 33 44 55 66 77 88"* ]]
+    if [[ $output == *"123   [8]  11 22 33 44 55 66 77 88"* ]]
     then                                                     
         RC=0                              
         return $RC                       

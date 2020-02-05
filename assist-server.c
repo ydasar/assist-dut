@@ -31,10 +31,24 @@
 
 int main(void) 
 { 
-    int sockfd, connfd, sockaddr_len; 
-    struct sockaddr_in dut_addr; 
+    int sockfd = 0, connfd = 0, sockaddr_len = 0; 
+    struct sockaddr_in dut_addr = {0}; 
+    int port = 0;
 
-    if((sockfd = create_socket()) == -1)
+    /* Read the configuration file and get the port number */   
+    if((port = atoi(get_config_value("port"))) == 0)
+    {
+        printf("\nAssist : Get port number fail\n");
+        return -1;
+    }
+    #ifdef DEBUG
+    else
+    {
+        printf("\nAssist : Binding TCP port is \n%s\n", ip_addr);
+    }
+    #endif
+
+    if((sockfd = create_socket(port)) == -1)
     {
         printf("\nAssist : Create socket fail\n");
         return -1;

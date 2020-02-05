@@ -29,7 +29,7 @@
 #define MAX_SIZE 4096
 #define PORT 5678 
 #define SA struct sockaddr 
-#define ASSIST_CONF_FILE "/home/root/assist_address.conf"
+#define ASSIST_CONF_FILE "/opt/ltp/testcases/bin/assist_address.conf"
 #define CONSOLE_LOG_FILE "/tmp/cmd_console_logs"
 
 
@@ -38,7 +38,7 @@
 
 
 /* Create daemon with send/recv functions */
-int create_socket(void);
+int create_socket(int port);
 char* read_socket(int sockfd);
 int write_socket(char* console_logs, int sockfd);
 
@@ -55,5 +55,6 @@ int start_process(char* request, int sockfd);
 int check_process_running(char* request, int sockfd);
 int kill_running_process(char* request, int sockfd);
 int execute_request(char* request, int sockfd);
+char* get_config_value(char* parameter);
 
 #endif

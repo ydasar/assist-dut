@@ -28,10 +28,10 @@
  *  @return sockfd on success and -1 on error.
  */
 
-int create_socket(void)
+int create_socket(int port)
 {
-    int sockfd; 
-    struct sockaddr_in assist_addr; 
+    int sockfd=0; 
+    struct sockaddr_in assist_addr={0}; 
 
     /* Create socket  */
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
@@ -56,7 +56,7 @@ int create_socket(void)
     /* Assign ip address and port to socket  */
     assist_addr.sin_family = AF_INET; 
     assist_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    assist_addr.sin_port = htons(PORT); 
+    assist_addr.sin_port = htons(port); 
 
     /* Bind socket with address and port */
     if ((bind(sockfd, (SA*)&assist_addr, sizeof(assist_addr))) != 0) 
@@ -164,7 +164,9 @@ int write_socket(char* console_logs, int sockfd)
     int total_send_len = 0;
     int tmp_send_len = 0;   
     int tmp_total_send_len = 0;
-    char tmpBuf[MAX_SIZE];
+    char tmpBuf[MAX_SIZE] = {0};
+    time_t end_wait = 0;
+    int wait_time = 600;
 
     #ifdef DEBUG
         printf("\nAssist : send data length is %d\n", strlen(console_logs));
@@ -187,7 +189,9 @@ int write_socket(char* console_logs, int sockfd)
     }
     
     /* Loop till last byte is sent */
-    while(1)
+    end_wait = time (NULL) + wait_time ;
+    /* while(1) */
+    while (time (NULL) < end_wait)
     {
         #ifdef DEBUG
             printf("\nSend temporary buffer is \n%s\n", tmpBuf);
@@ -249,4 +253,42 @@ int write_socket(char* console_logs, int sockfd)
         //strncpy(tmpBuf, &console_logs[total_send_len], MAX_SIZE-1);
     }
     return retVal;
+}
+
+
+/** @file dut-client.c
+ *  @brief Read config file search for parameter and return the value
+ *
+ *  Read config file search for parameter and return the value
+ *
+ *  @param parameter
+ *  @return value (can be IP address or port etc). On error return NULL.
+ */
+
+char* get_config_value(char* parameter)
+{
+
+    FILE *assist_conf=NULL;
+    char line[200];
+    char* value_address = NULL;
+
+    if((assist_conf = fopen(ASSIST_CONF_FILE, "r")) == NULL)
+    {
+        printf("\nCannot open the file");
+        return NULL;
+    }   
+
+    /* Loop and find the assist ip address */
+    while (fgets(line, sizeof(line), assist_conf)) 
+    {
+        if(strstr(line, parameter) != NULL) 
+        {           
+            sprintf(line, "%s", &line[strlen(parameter)+1]);
+            value_address = malloc(strlen(line));
+            strcpy(value_address, line);
+            /* printf("\nIP address is %s\n", line); */
+            return value_address;
+        }
+    }
+    return NULL;
 }

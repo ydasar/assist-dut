@@ -234,6 +234,7 @@ int main(int argc, char* argv[])
 { 
     int sockfd = 0; 
     char* ip_addr = NULL;
+    char* portBuf = NULL;
     int port = 0;
 
     /* Help in running the dut-client */
@@ -272,9 +273,14 @@ int main(int argc, char* argv[])
     #endif    
 
     /* Read the configuration file and get the port number */   
-    if((port = atoi(get_config_value("port"))) == 0)
+    if((portBuf = get_config_value("port")) == NULL)
     {
-        printf("\nDUT : Get port number fail\n");
+        printf("\nAssist : Get port number fail\n");
+        return -1;   
+    }    
+    if((port = atoi(portBuf)) == 0)
+    {
+        printf("\nAssist : Get port number fail\n");
         return -1;
     }
     #ifdef DEBUG
@@ -296,6 +302,20 @@ int main(int argc, char* argv[])
         printf("\nDUT : Create socket pass\n");
     }
     #endif
+
+    /* Free the allocated memory for port */
+    if(portBuf != NULL)
+    {
+        free(portBuf);
+        portBuf = NULL;
+    }
+
+    /* Free the allocated memory fir ip address*/
+    if(ip_addr != NULL)
+    {
+        free(ip_addr);
+        ip_addr = NULL;
+    }
 
     /* Send request to assist board */
     if(client_write_socket(argv[1], sockfd) == -1)

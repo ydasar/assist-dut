@@ -1,4 +1,11 @@
 /** @file services.c
+ *
+ *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *
+ *  This file is licensed under the terms of the GNU General Public License
+ *  version 2.  This program  is licensed "as is" without any warranty of any
+ *  kind, whether express or implied.
+ *
  *  @brief Receive incoming requests from DUT, device them based on the request.
  *
  *  Request can be following
@@ -30,99 +37,97 @@
 
 
 int service_request(int sockfd) 
-{ 		
-	char* request = NULL;
-	int retVal = 0;
+{       
+    char* request = NULL;
+    int retVal = 0;
 
-	if((request = read_socket(sockfd)) == NULL)
-	{
-		printf("\nAssist : read_socket() fail\n");
-		write_socket("Assist : read_socket() fail. AssistDataEnds", sockfd);
+    if((request = read_socket(sockfd)) == NULL)
+    {
+        printf("\nAssist : read_socket() fail\n");
+        write_socket("Assist : read_socket() fail. AssistDataEnds", sockfd);
         retVal = -1;
-	}
-	#ifdef DEBUG
-	else
-	{
-		printf("\nAssist : Recv/read pass\n");
-	}
-	#endif
+    }
+    #ifdef DEBUG
+    else
+    {
+        printf("\nAssist : Recv/read pass\n");
+    }
+    #endif
 
 
-	/* Receive console logs */
-	if(strcmp(request, "ConsoleLogsRequest") == 0)
-	{
-		if(request_console_logs(sockfd) == -1)
-		{
-			printf("\nAssist : request_console_logs() fail\n");
-			write_socket("Assist : request_console_logs() fail. AssistDataEnds", sockfd);
-			retVal = -1;
-		}
-		#ifdef DEBUG
-		else
-		{
-			printf("\nAssist : request_console_logs() pass\n");
-		}
-		#endif
-	}
+    /* Receive console logs */
+    if(strcmp(request, "ConsoleLogsRequest") == 0)
+    {
+        retVal = request_console_logs(sockfd);
+    }
 
-	/* Clear console logs */
-	else if(strcmp(request, "ConsoleLogsClear") == 0)
-	{
-		if(clear_console_logs(sockfd) == -1)
-		{
-			printf("\nAssist : clear_console_logs() fail\n");
-			write_socket("Assist : clear_console_logs() fail. AssistDataEnds", sockfd);
-			retVal = -1;			
-		}
-		#ifdef DEBUG
-		else
-		{
-			printf("\nAssist : clear_console_logs() pass\n");
-		}
-		#endif
-	}
+    /* Clear console logs */
+    else if(strcmp(request, "ConsoleLogsClear") == 0)
+    {
+        retVal = clear_console_logs(sockfd);
+    }
 
-	/* Rebooting assist board */
-	else if(strcmp(request, "AssistBoardReboot") == 0)
-	{
-		retVal = reboot_assist_board(sockfd);
-	}
+    /* Check the health of assit board */
+    else if(strcmp(request, "AssistBoardHealth") == 0)
+    {
+        retVal = health_check_assist_board(sockfd);
+    }
 
-	/* Check the health of assit board */
-	else if(strcmp(request, "AssistBoardHealth") == 0)
-	{
-		retVal = health_check_assist_board(sockfd);
-	}
+    #ifdef READY_TO_USE
+    
+        /* Check assist board is reserved */
+        else if(strcmp(request, "AssistBoardReserveStatus") == 0)
+        {
+            retVal = check_assistboard_reserve(sockfd);
+        }
 
-	/* Start a process */
-	else if(strstr(request, "StartProcess") != 0)
-	{
-		retVal = start_process(request, sockfd);
-	}
+        /* Reserve the assist board */
+        else if(strcmp(request, "AssistBoardReserve") == 0)
+        {
+            retVal = reserve_assist_service(sockfd);
+        }
 
-	/* Check a process is running */
-	else if(strstr(request, "CheckProcessRunning") != 0)
-	{
-		retVal = check_process_running(request, sockfd);
-	}
+        /* Unreserve the assost board */
+        else if(strcmp(request, "AssistBoardUnreserve") == 0)
+        {
+            retVal = unreserve_assist_service(sockfd);
+        }
 
-	/* Kill a running process */
-	else if(strstr(request, "KillRunningProcess") != 0)
-	{
-		retVal = kill_running_process(request, sockfd);
-	}	
+        /* Rebooting assist board */
+        else if(strcmp(request, "AssistBoardReboot") == 0)
+        {
+            retVal = reboot_assist_board(sockfd);
+        }
 
-	/* Execute the command */
-	else 
-	{
-		retVal = execute_request(request, sockfd);
+        /* Start a process */
+        else if(strstr(request, "StartProcess") != 0)
+        {
+            retVal = start_process(request, sockfd);
+        }
+
+        /* Check a process is running */
+        else if(strstr(request, "CheckProcessRunning") != 0)
+        {
+            retVal = check_process_running(request, sockfd);
+        }
+
+        /* Kill a running process */
+        else if(strstr(request, "KillRunningProcess") != 0)
+        {
+            retVal = kill_running_process(request, sockfd);
+        }   
+    #endif
+    /* Execute the command */
+    else 
+    {
+        retVal = execute_request(request, sockfd);
     }
 
     /* Free the allocated memory */ 
-	if(request)
-	{
-		free(request); 
-		request = NULL;
-	}
-	return retVal;
+    if(request)
+    {
+        free(request); 
+        request = NULL;
+    }
+    return retVal;
 }

@@ -1,7 +1,7 @@
 1) What this utility is for 
 
-CAN and UART tests executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
-The board which is under test is called DUT board. The board which is helping to execute test cases is called assist board.
+CAN and UART tests are executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
+The board which is under test is called DUT board. The board which is helping to execute the tests is called assist board.
 
 
 2) Sample of test cases :
@@ -26,25 +26,31 @@ Make file is provided. Use "make clean ; make" to compile the code
 4) How to run the utility
 
 At assist board :
-./assist-server & 
-nohup ./assist-server & 
+$ nohup /opt/ltp/testcases/bin/assist-server & # will create a nohum.out file
+$ nohup /opt/ltp/testcases/bin/assist-server >/dev/null 2>&1 & # will not create nohup.out file
 
+# Help
+At DUT side : 
+$ /opt/ltp/testcases/bin/dut-client -h
 
-At DUT side : ./dut-client -h
-./dut-client "any-command"
-./dut-client "ConsoleLogsRequest"
-./dut-client "ConsoleLogsClear"
-./dut-client "AssistBoardReboot"
-./dut-client "AssistBoardHealth"
-./dut-client "StartProcess"
-./dut-client "CheckProcessRunning"
-./dut-client "KillRunningProcess"
+# Run command
+$ /opt/ltp/testcases/bin/dut-client "command"
+$ /opt/ltp/testcases/bin/dut-client "candump can0"
+
+# Request for assit board console logs
+$ /opt/ltp/testcases/bin/dut-client "ConsoleLogsRequest"
+
+# Request for clearing console logs
+$ /opt/ltp/testcases/bin/dut-client "ConsoleLogsClear"
+
+# Check the assist board health status
+$ /opt/ltp/testcases/bin/dut-client "AssistBoardHealth"
 
 
 5) How to use the utility in test automation
 
 Step a) At assist board :
-./assist-server & 
+$ nohup /opt/ltp/testcases/bin/assist-server >/dev/null 2>&1 & 
 
 Step b) At DUT board test.sh :
 
@@ -54,7 +60,10 @@ Step b) At DUT board test.sh :
 ./dut-client "cat /proc/cpuinfo"
 output=`./dut-client "ConsoleLogsRequest`
 if [[ $output == *"test-buffer"* ]]; then
-	echo "Test pass"
+    echo "Test pass"
 else
-	echo "Test fail"
+    echo "Test fail"
 fi
+
+6) Limitations/Recommendations
+Assist baord and DUT board should be in same subnet

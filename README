@@ -26,29 +26,31 @@ Make file is provided. Use "make clean ; make" to compile the code
 4) How to run the utility
 
 At assist board :
-nohup ./assist-server & 
+$ nohup /opt/ltp/testcases/bin/assist-server & # will create a nohum.out file
+$ nohup /opt/ltp/testcases/bin/assist-server >/dev/null 2>&1 & # will not create nohup.out file
 
 # Help
-At DUT side : ./dut-client -h
+At DUT side : 
+$ /opt/ltp/testcases/bin/dut-client -h
 
 # Run command
-/home/root/dut-client "command"
-Example : /home/root/dut-client "candump can0"
+$ /opt/ltp/testcases/bin/dut-client "command"
+$ /opt/ltp/testcases/bin/dut-client "candump can0"
 
 # Request for assit board console logs
-/home/root/dut-client "ConsoleLogsRequest"
+$ /opt/ltp/testcases/bin/dut-client "ConsoleLogsRequest"
 
 # Request for clearing console logs
-/home/root/dut-client "ConsoleLogsClear"
+$ /opt/ltp/testcases/bin/dut-client "ConsoleLogsClear"
 
 # Check the assist board health status
-/home/root/dut-client "AssistBoardHealth"
+$ /opt/ltp/testcases/bin/dut-client "AssistBoardHealth"
 
 
 5) How to use the utility in test automation
 
 Step a) At assist board :
-./assist-server & 
+$ nohup /opt/ltp/testcases/bin/assist-server >/dev/null 2>&1 & 
 
 Step b) At DUT board test.sh :
 

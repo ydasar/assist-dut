@@ -58,35 +58,13 @@ int service_request(int sockfd)
     /* Receive console logs */
     if(strcmp(request, "ConsoleLogsRequest") == 0)
     {
-        if(request_console_logs(sockfd) == -1)
-        {
-            printf("\nAssist : request_console_logs() fail\n");
-            write_socket("Assist : request_console_logs() fail. AssistDataEnds", sockfd);
-            retVal = -1;
-        }
-        #ifdef DEBUG
-        else
-        {
-            printf("\nAssist : request_console_logs() pass\n");
-        }
-        #endif
+        retVal = request_console_logs(sockfd);
     }
 
     /* Clear console logs */
     else if(strcmp(request, "ConsoleLogsClear") == 0)
     {
-        if(clear_console_logs(sockfd) == -1)
-        {
-            printf("\nAssist : clear_console_logs() fail\n");
-            write_socket("Assist : clear_console_logs() fail. AssistDataEnds", sockfd);
-            retVal = -1;            
-        }
-        #ifdef DEBUG
-        else
-        {
-            printf("\nAssist : clear_console_logs() pass\n");
-        }
-        #endif
+        retVal = clear_console_logs(sockfd);
     }
 
     /* Check the health of assit board */
@@ -96,6 +74,25 @@ int service_request(int sockfd)
     }
 
     #ifdef READY_TO_USE
+    
+        /* Check assist board is reserved */
+        else if(strcmp(request, "AssistBoardReserveStatus") == 0)
+        {
+            retVal = check_assistboard_reserve(sockfd);
+        }
+
+        /* Reserve the assist board */
+        else if(strcmp(request, "AssistBoardReserve") == 0)
+        {
+            retVal = reserve_assist_service(sockfd);
+        }
+
+        /* Unreserve the assost board */
+        else if(strcmp(request, "AssistBoardUnreserve") == 0)
+        {
+            retVal = unreserve_assist_service(sockfd);
+        }
+
         /* Rebooting assist board */
         else if(strcmp(request, "AssistBoardReboot") == 0)
         {

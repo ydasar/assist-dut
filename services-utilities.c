@@ -42,52 +42,51 @@
 int request_console_logs(int sockfd)
 {
     char* console_logs = NULL;
-    int retVal = -1;
+    char tmpBuf[256] = {0};
+    int retVal = 0;
 
     /* Read the log file and colect the content */
     if((console_logs = collect_console_logs()) == NULL)
     {
-        printf("\nAssist : collect_console_logs() fail\n");
-        if(console_logs)
-        {
-            free(console_logs); 
-            console_logs = NULL;
-        }
-        return retVal = -1;
+        printf("\nAssist : collect_console_logs() fail. Log file doesnt exist or no logs.\n");
+        sprintf(tmpBuf, "Assist : collect_console_logs() fail. Log file doesnt exist. Return value is -1. AssistDataEnds");
+        retVal = -1;
     }
 
     /* If the console logs length is zero byte or less, it is error */
-    else if(strlen(console_logs) < 1)
+    else if((retVal == -1) || (strlen(console_logs) < 1))
     {
         printf("\nAssist : collect_console_logs() null\n");
-        if(console_logs)
-        {
-            free(console_logs); 
-            console_logs = NULL;
-        }
-        return retVal = -1;
+        sprintf(tmpBuf, "Assist : collect_console_logs() fail. Log file doesnt has logs. Return value is -1. AssistDataEnds");
+        retVal = -1;
     }
 
     /* Send/write  console logs to socket */
-    if((write_socket(console_logs, sockfd)) == -1)
+    else if((retVal == -1) || (write_socket(console_logs, sockfd) == -1))
     {
         printf("\nAssist : Write console logs failed\n");
-        if(console_logs)
-        {
-            free(console_logs); 
-            console_logs = NULL;
-        }
-        return retVal = -1;
+        sprintf(tmpBuf, "Assist : collect_console_logs() fail. Write to socket fail. Return value is -1. AssistDataEnds");
+        retVal = -1;
     }       
 
     /* Free console_log memory */
-    if(console_logs)
+    if(console_logs != NULL)
     {
         free(console_logs); 
         console_logs = NULL;    
     }
 
-    return retVal = 0;
+    if(retVal == -1)
+    {
+        write_socket(tmpBuf, sockfd);
+    }
+    else
+    {
+        retVal = 0;
+        sprintf(tmpBuf, "Assist : collect_console_logs() pass. Return value is 0. AssistDataEnds");
+        write_socket(tmpBuf, sockfd);
+    }
+    return retVal;
 }
 
 
@@ -182,18 +181,32 @@ char* collect_console_logs(void)
 int clear_console_logs(int sockfd)
 {
     FILE *fd_cmd_output= NULL;
+    char tmpBuf[256] = {0};
 
     if((fd_cmd_output = fopen(CONSOLE_LOG_FILE, "w")) == NULL)
     {
         printf("\nAssist : Cannot open the file");
+        sprintf(tmpBuf, "Assist : Cannot open the file. Return value is -1. AssistDataEnds");
+        write_socket(tmpBuf, sockfd);
+
         return -1;
     }   
 
-    fclose(fd_cmd_output);
+    if(fclose(fd_cmd_output) != 0)
+    {
+        printf("\nAssist : Cannot truncate and close the file");
+        sprintf(tmpBuf, "Assist : Cannot truncate and close the file. Return value is -1. AssistDataEnds");
+        write_socket(tmpBuf, sockfd);
 
-    write_socket("Assist : clear_console_logs() pass. AssistDataEnds", sockfd);
-
-    return 0;
+        return -1;
+    }
+    else
+    {
+        printf("\nAssist : clear_console_logs() pass");
+        sprintf(tmpBuf, "Assist : request_console_logs() pass. Return value is 0. AssistDataEnds");
+        write_socket(tmpBuf, sockfd);    
+        return 0;
+    }
 }
 
 
@@ -265,6 +278,67 @@ int execute_request(char* request, int sockfd)
 
 
 #ifdef READY_TO_USE
+
+/** @file services-utilities.c
+ *  @brief iCheck assist board is blocked by some one.
+ *
+ *  At the begining of test, reserve/block/book the assist board for comtnual test.
+ *  Once the test is completed, unreserve/unblock/unbook the same.
+ *
+ *  @param none
+ *  @return 0
+ */
+
+int check_assistboard_reserve(int sockfd)
+{
+    if(g_reserve_assist == 1)
+    {
+        write_socket("Assist board is reserved. AssistDataEnds", sockfd);
+    }
+    else
+    {
+        write_socket("Assist board is not reserved. AssistDataEnds", sockfd);
+    }
+    return 0;
+}
+
+
+/** @file services-utilities.c
+ *  @brief Reiserve the assist board service.
+ *
+ *  At the begining of test, block or book the assist board for comtnual test.
+ *  Once the test is completed, unblock the same.
+ *
+ *  @param none
+ *  @return 0
+ */
+
+int reserve_assist_service(int sockfd)
+{
+    g_reserve_assist=1;
+    write_socket("Assist board is reserved for you. AssistDataEnds", sockfd);
+    return 0;
+}
+
+
+/** @file services-utilities.c
+ *  @brief Unreiserve the assist board service.
+ *
+ *  At the begining of test, block or book the assist board for comtnual test.
+ *  Once the test is completed, unblock the same.
+ *
+ *  @param none
+ *  @return 0
+ */
+
+int unreserve_assist_service(int sockfd)
+{
+    g_reserve_assist=0;
+    write_socket("Assist board is unreserved. AssistDataEnds", sockfd);
+    return 0;
+}
+
+
 /** @file services-utilities.c
  *  @brief Reboot the assist board
  *

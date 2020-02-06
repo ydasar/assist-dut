@@ -191,7 +191,7 @@ char* client_read_socket(int sockfd)
     }
     
     #ifdef DEBUG
-        printf("\nDUT : Console logs length is : %d\n", strlen(receive_data));
+        printf("\nDUT : Console logs length is : %ld\n", strlen(receive_data));
         printf("\nDUT : Console logs : \n%s\n", receive_data);
     #endif
     return receive_data ;

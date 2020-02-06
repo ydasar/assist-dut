@@ -36,6 +36,9 @@
 /* Uncomment below line and compile the code to get more informative logs */
 /* #define DEBUG 1 */
 
+/* Global variables */
+
+int g_reserve_assist;
 
 /* Create daemon with send/recv functions */
 int create_socket(int port);
@@ -56,5 +59,16 @@ int check_process_running(char* request, int sockfd);
 int kill_running_process(char* request, int sockfd);
 int execute_request(char* request, int sockfd);
 char* get_config_value(char* parameter);
+
+#ifdef READY_TO_USE
+int check_assistboard_reserve(int sockfd);
+int reserve_assist_service(int sockfd);
+int unreserve_assist_service(int sockfd);
+int reboot_assist_board(int sockfd);
+int start_process(char* request, int sockfd);
+int check_process_running(char* request, int sockfd);
+int kill_running_process(char* request, int sockfd);
+
+#endif
 
 #endif

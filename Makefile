@@ -2,7 +2,7 @@ all: assist-server dut-client
 
 IDIR =./include
 CC=gcc
-# CC=/opt/gcc-arm-8.2-2018.08-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+#CC=/opt/gcc-arm-8.2-2018.08-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 CFLAGS=-I$(IDIR)
 
 ODIR=obj

@@ -33,10 +33,16 @@ int main(void)
 { 
     int sockfd = 0, connfd = 0, sockaddr_len = 0; 
     struct sockaddr_in dut_addr = {0}; 
+    char* portBuf; 
     int port = 0;
 
     /* Read the configuration file and get the port number */   
-    if((port = atoi(get_config_value("port"))) == 0)
+    if((portBuf = get_config_value("port")) == NULL)
+    {
+        printf("\nAssist : Get port number fail\n");
+        return -1;   
+    }
+    if((port = atoi(portBuf)) == 0)
     {
         printf("\nAssist : Get port number fail\n");
         return -1;
@@ -44,9 +50,16 @@ int main(void)
     #ifdef DEBUG
     else
     {
-        printf("\nAssist : Binding TCP port is \n%s\n", ip_addr);
+        printf("\nAssist : Binding TCP port is \n%d\n", port);
     }
     #endif
+
+    /* Free the allocated memory */
+    if(portBuf != NULL)
+    {
+        free(portBuf);
+        portBuf = NULL;
+    }
 
     if((sockfd = create_socket(port)) == -1)
     {

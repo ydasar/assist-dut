@@ -169,7 +169,7 @@ int write_socket(char* console_logs, int sockfd)
     int wait_time = 600;
 
     #ifdef DEBUG
-        printf("\nAssist : send data length is %d\n", strlen(console_logs));
+        printf("\nAssist : send data length is %ld\n", strlen(console_logs));
         printf("\nAssist : send data is \n%s\n", console_logs);
     #endif
 
@@ -274,7 +274,7 @@ char* get_config_value(char* parameter)
 
     if((assist_conf = fopen(ASSIST_CONF_FILE, "r")) == NULL)
     {
-        printf("\nCannot open the file");
+        printf("\nCannot open the config file");
         return NULL;
     }   
 

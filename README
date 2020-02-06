@@ -1,6 +1,6 @@
 1) What this utility is for 
 
-CAN and UART tests are executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
+CAN (Including MCAN) and UART tests are executed with help of two boards. Two boards are physically connected with wires for send/recv data. 
 The board which is under test is called DUT board. The board which is helping to execute the tests is called assist board.
 
 
@@ -29,8 +29,9 @@ At assist board :
 $ nohup /opt/ltp/testcases/bin/assist-server & # will create a nohum.out file
 $ nohup /opt/ltp/testcases/bin/assist-server >/dev/null 2>&1 & # will not create nohup.out file
 
-# Help
+
 At DUT side : 
+# Help
 $ /opt/ltp/testcases/bin/dut-client -h
 
 # Run command
@@ -67,3 +68,5 @@ fi
 
 6) Limitations/Recommendations
 Assist baord and DUT board should be in same subnet
+
+7) How to 

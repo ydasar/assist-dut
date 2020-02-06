@@ -1,6 +1,6 @@
 /** @file services.c
  *
- *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *  Copyright 2019-2020 Mentor Graphics Corporation, A Siemens business
  *
  *  This file is licensed under the terms of the GNU General Public License
  *  version 2.  This program  is licensed "as is" without any warranty of any
@@ -23,7 +23,7 @@
  *  @bug No know bugs.
  */
 
-#include "./include/assist.h"
+#include <assist.h>
 
 
 /** @file services.c
@@ -32,11 +32,11 @@
  *  DUT request is compared/analised. Based on request appropriate utility is called.
  *
  *  @param sockfd (socket descriptor)
- *  @return retVal (success 0, failure -1).
+ *  @return retVal (0 on success, appripriate error on fail).
  */
 
 
-int service_request(int sockfd) 
+int service_request(int sockfd, int reserve_assist) 
 {       
     char* request = NULL;
     int retVal = 0;
@@ -45,13 +45,10 @@ int service_request(int sockfd)
     {
         printf("\nAssist : read_socket() fail\n");
         write_socket("Assist : read_socket() fail. AssistDataEnds", sockfd);
-        retVal = -1;
+        retVal = WRITE_SOCKET_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nAssist : Recv/read pass\n");
-    }
     #endif
 
 
@@ -73,24 +70,25 @@ int service_request(int sockfd)
         retVal = health_check_assist_board(sockfd);
     }
 
-    #ifdef READY_TO_USE
+    /* Below function/features can be used in future. Begin */
+    #ifdef USE_IN_FUTURE
     
         /* Check assist board is reserved */
         else if(strcmp(request, "AssistBoardReserveStatus") == 0)
         {
-            retVal = check_assistboard_reserve(sockfd);
+            retVal = check_assistboard_reserve(sockfd, reserve_assist);
         }
 
         /* Reserve the assist board */
         else if(strcmp(request, "AssistBoardReserve") == 0)
         {
-            retVal = reserve_assist_service(sockfd);
+            retVal = reserve_assist_service(sockfd, reserve_assist);
         }
 
         /* Unreserve the assost board */
         else if(strcmp(request, "AssistBoardUnreserve") == 0)
         {
-            retVal = unreserve_assist_service(sockfd);
+            retVal = unreserve_assist_service(sockfd, reserve_assist);
         }
 
         /* Rebooting assist board */
@@ -117,6 +115,9 @@ int service_request(int sockfd)
             retVal = kill_running_process(request, sockfd);
         }   
     #endif
+    /* Above function/features can be used in future. End */
+
+
     /* Execute the command */
     else 
     {
@@ -129,5 +130,9 @@ int service_request(int sockfd)
         free(request); 
         request = NULL;
     }
+
+    /* This line added to avoid compile error for #define USE_IN_FUTURE*/
+    reserve_assist = reserve_assist;
+
     return retVal;
 }

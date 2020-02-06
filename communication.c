@@ -1,6 +1,6 @@
 /** @file communication.c
  *
- *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *  Copyright 2019-2020 Mentor Graphics Corporation, A Siemens business
  *
  *  This file is licensed under the terms of the GNU General Public License
  *  version 2.  This program  is licensed "as is" without any warranty of any
@@ -16,7 +16,7 @@
  *  @bug No know bugs.
  */
 
-#include "./include/assist.h"
+#include <assist.h>
 
 
 /** @file communication.c
@@ -37,18 +37,12 @@ int create_socket(int port)
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
     if (sockfd == -1) 
     { 
-        printf("Assist : Create socket fail\n"); 
-        return -1; 
+        perror("Assist : Create socket fail."); 
+        return SOCKET_FAIL; 
     } 
     #ifdef DEBUG
-    else
-    {
         printf("Assist : Create socket pass\n"); 
-    }
     #endif
-
-    int enable = 1;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
 
     /* Set zero in assist_addr to remove junk chars */
     bzero(&assist_addr, sizeof(assist_addr));
@@ -59,29 +53,23 @@ int create_socket(int port)
     assist_addr.sin_port = htons(port); 
 
     /* Bind socket with address and port */
-    if ((bind(sockfd, (SA*)&assist_addr, sizeof(assist_addr))) != 0) 
+    if ((bind(sockfd, (struct sockaddr*)&assist_addr, sizeof(assist_addr))) != 0) 
     { 
-        printf("Assist : Bind socket fail\n"); 
-        return -1; 
+        perror("Assist : Bind socket fail."); 
+        return BIND_FAIL; 
     } 
     #ifdef DEBUG
-    else
-    {
         printf("Assist : Bind socket pass\n"); 
-    }
     #endif
 
     /* Listen using socket. Max connections can be 1 */
     if ((listen(sockfd, 1)) != 0) 
     { 
-        printf("Assist : Listen socket fail\n"); 
-        return -1; 
+        perror("Assist : Listen socket fail"); 
+        return LISTEN_FAIL; 
     } 
     #ifdef DEBUG
-    else
-    {
         printf("Assist : Listen socket pass\n"); 
-    }
     #endif
 
     return sockfd;
@@ -108,28 +96,22 @@ char* read_socket(int sockfd)
     request = (char *)malloc(MAX_SIZE);
     if(request == NULL)
     {
-        printf("\nAssist : Memory allocation fail at read_socket()\n");
+        perror("Assist : Memory allocation fail at read_socket().");
         return NULL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nAssist : Memory allocation pass\n");
-    }
     #endif
 
     /* Recv/read data from socket */
     if((request_len = read(sockfd, request, MAX_SIZE)) == -1)
     {
-        printf("\nAssist : Read fail\n");
+        perror("Assist : Read fail.");
         free(request); request = NULL;
         return NULL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nAssist : Read pass\n");
-    }
     #endif
 
     /* At end there is "\n". Remove it */
@@ -204,21 +186,21 @@ int write_socket(char* console_logs, int sockfd)
         /* Check the data send error */
         if(tmp_send_len == -1)
         {
-            printf("\nAssist : Writing socket fail. Return value is (-1) %d\n", tmp_send_len);
-            retVal = -1;
+            perror("Assist : Writing socket fail. Return value is (-1).");
+            retVal = WRITE_FAIL1;
             break;
         }
         /* Check the data send error */
         else if (tmp_send_len < 0)
         {
-            printf("\nAssist : Writing socket fail. Return value is (<0) %d\n", tmp_send_len);
-            retVal = -1;
+            perror("Assist : Writing socket fail. Return value is (<0).");
+            retVal = WRITE_FAIL2;
             break;
         }
         /* Check the data send error */
         else if(tmp_send_len == 0)
         {
-            printf("\nAssist : Writing socket returned zero. Try again. Return value is (0) %d\n", tmp_send_len);
+            perror("Assist : Writing socket returned zero. Try again. Return value is (0)");
         }
         
         /* Know till now how much data is sent */
@@ -234,7 +216,7 @@ int write_socket(char* console_logs, int sockfd)
         if((total_send_len - tmp_total_send_len) <= 0)
         {
             printf("\nAssist : Sent complete data\n");
-            retVal = 0;
+            retVal = OK;
             break;
         }
 
@@ -269,12 +251,12 @@ char* get_config_value(char* parameter)
 {
 
     FILE *assist_conf=NULL;
-    char line[200];
+    char line[256];
     char* value_address = NULL;
 
     if((assist_conf = fopen(ASSIST_CONF_FILE, "r")) == NULL)
     {
-        printf("\nCannot open the config file");
+        perror("Cannot open the config file.");
         return NULL;
     }   
 
@@ -286,9 +268,10 @@ char* get_config_value(char* parameter)
             sprintf(line, "%s", &line[strlen(parameter)+1]);
             value_address = malloc(strlen(line));
             strcpy(value_address, line);
-            /* printf("\nIP address is %s\n", line); */
+            fclose(assist_conf);
             return value_address;
         }
     }
+    fclose(assist_conf);
     return NULL;
 }

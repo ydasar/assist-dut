@@ -1,6 +1,6 @@
 /** @file assist-server.c
  *
- *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *  Copyright 2019-2020 Mentor Graphics Corporation, A Siemens business
  *
  *  This file is licensed under the terms of the GNU General Public License
  *  version 2.  This program  is licensed "as is" without any warranty of any
@@ -15,8 +15,7 @@
  *  @bug No know bugs.
  */
 
-#include "include/assist.h"
-
+#include <assist.h>
 
 
 /** @file assist-server.c
@@ -35,23 +34,21 @@ int main(void)
     struct sockaddr_in dut_addr = {0}; 
     char* portBuf; 
     int port = 0;
+    int reserve_assist = -1;
 
     /* Read the configuration file and get the port number */   
     if((portBuf = get_config_value("port")) == NULL)
     {
         printf("\nAssist : Get port number fail\n");
-        return -1;   
+        return CONFIG_FILE_PORT_NOT_FOUND;   
     }
     if((port = atoi(portBuf)) == 0)
     {
-        printf("\nAssist : Get port number fail\n");
-        return -1;
+        perror("Assist : Get port number fail.");
+        return CONVERT_PORT_TO_INT_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nAssist : Binding TCP port is \n%d\n", port);
-    }
     #endif
 
     /* Free the allocated memory */
@@ -61,16 +58,13 @@ int main(void)
         portBuf = NULL;
     }
 
-    if((sockfd = create_socket(port)) == -1)
+    if((sockfd = create_socket(port)) < 0)
     {
         printf("\nAssist : Create socket fail\n");
-        return -1;
+        return CREATE_SOCKET_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nAssist : Create socket pass\n");
-    }
     #endif
 
     // loop indefinitely for wait or listen or receive mode
@@ -81,16 +75,13 @@ int main(void)
         // Accept connection from peer
         if((connfd = accept(sockfd, (struct sockaddr *)&dut_addr, (socklen_t*)&sockaddr_len)) < 0) 
         { 
-            printf("\nAssist : Accept fail\n"); 
+            perror("Assist : Accept fail."); 
             continue; 
         } 
-        else
-        {
-            printf("\n============New connection==============\n"); 
-        }
+        printf("\n============New connection==============\n"); 
 
         // Start receiving the requests or commands from DUT board
-        if(service_request(connfd) == -1)
+        if(service_request(connfd, reserve_assist) != OK)
         {
             printf("\nAssist : Something went wrong at assist board. Please check\n");
             
@@ -101,5 +92,5 @@ int main(void)
         } 
     }
     close(sockfd);
-    return 0;
+    return OK;
 }

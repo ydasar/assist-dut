@@ -1,6 +1,6 @@
 /** @file services-utilities.c
  *
- *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *  Copyright 2019-2020 Mentor Graphics Corporation, A Siemens business
  *
  *  This file is licensed under the terms of the GNU General Public License
  *  version 2.  This program  is licensed "as is" without any warranty of any
@@ -25,7 +25,7 @@
  *  @bug No know bugs.
  */
 
-#include "./include/assist.h"
+#include <assist.h>
 
 
 
@@ -50,7 +50,7 @@ int request_console_logs(int sockfd)
     {
         printf("\nAssist : collect_console_logs() fail. Log file doesnt exist or no logs.\n");
         sprintf(tmpBuf, "Assist : collect_console_logs() fail. Log file doesnt exist. Return value is -1. AssistDataEnds");
-        retVal = -1;
+        retVal = COLLECT_CONSOLE_LOGS_FAIL;
     }
 
     /* If the console logs length is zero byte or less, it is error */
@@ -58,7 +58,7 @@ int request_console_logs(int sockfd)
     {
         printf("\nAssist : collect_console_logs() null\n");
         sprintf(tmpBuf, "Assist : collect_console_logs() fail. Log file doesnt has logs. Return value is -1. AssistDataEnds");
-        retVal = -1;
+        retVal = CONSOLE_LOGS_ZERO_SIZE;
     }
 
     /* Send/write  console logs to socket */
@@ -66,7 +66,7 @@ int request_console_logs(int sockfd)
     {
         printf("\nAssist : Write console logs failed\n");
         sprintf(tmpBuf, "Assist : collect_console_logs() fail. Write to socket fail. Return value is -1. AssistDataEnds");
-        retVal = -1;
+        retVal = WRITE_SOCKET_FAIL;
     }       
 
     /* Free console_log memory */
@@ -76,13 +76,13 @@ int request_console_logs(int sockfd)
         console_logs = NULL;    
     }
 
-    if(retVal == -1)
+    if(retVal != OK)
     {
         write_socket(tmpBuf, sockfd);
     }
     else
     {
-        retVal = 0;
+        retVal = OK;
         sprintf(tmpBuf, "Assist : collect_console_logs() pass. Return value is 0. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
     }
@@ -111,20 +111,20 @@ char* collect_console_logs(void)
     /* Open console log file /tmp/cmd_output */
     if((fd_cmd_output = fopen(CONSOLE_LOG_FILE, "r")) == NULL)
     {
-        printf("\nCannot open the file");
+        perror("Assist : Cannot open the file.");
         /* Here console logs is NULL */
         return NULL;
     }
     /* Move to end of file */
     if(fseek(fd_cmd_output, 0 , SEEK_END) != 0)
     {
-        printf("\nfile seek fail\n");
+        printf("Assist : File seek fail.");
     }
 
     /* Find the size of console logs */
     if((console_logs_len = ftell(fd_cmd_output)) == 0)
     {
-        printf("\nfile size is zero\n");    
+        perror("Assist : File size is zero");    
         fclose(fopen(CONSOLE_LOG_FILE, "w"));
         console_logs = NULL;
         return console_logs;            
@@ -133,7 +133,7 @@ char* collect_console_logs(void)
     /* Move to begining of file */
     if(fseek(fd_cmd_output, 0 , SEEK_SET) != 0)
     {
-        printf("\nfile seek fail\n");
+        perror("Assist : File seek fail");
     }
 
     if(console_logs_len > 0)
@@ -152,14 +152,14 @@ char* collect_console_logs(void)
     
     if((fread(console_logs, sizeof(char), console_logs_len, fd_cmd_output)) != console_logs_len)
     {
-        printf("\nfile read fail\n");
+        perror("Assist : File read fail.");
     }
     console_logs[console_logs_len]='\0';
     strcat(console_logs, "\n");
     strcat(console_logs, "AssistDataEnds");
     
     #ifdef DEBUG
-        printf("\nfile read data is \n%s\n", console_logs);
+        printf("\nAssist : File read data is \n%s\n", console_logs);
     #endif
     
     sleep(1);
@@ -175,7 +175,7 @@ char* collect_console_logs(void)
  *  Clear the console logs
  *
  *  @param sockfd (Socket descriptor)
- *  @return 0 on success and -1 on error
+ *  @return 0 on success and appripriate error on fail
  */
 
 int clear_console_logs(int sockfd)
@@ -185,27 +185,27 @@ int clear_console_logs(int sockfd)
 
     if((fd_cmd_output = fopen(CONSOLE_LOG_FILE, "w")) == NULL)
     {
-        printf("\nAssist : Cannot open the file");
+        perror("Assist : Cannot open the file.");
         sprintf(tmpBuf, "Assist : Cannot open the file. Return value is -1. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
 
-        return -1;
+        return FILE_OPEN_FAIL;
     }   
 
     if(fclose(fd_cmd_output) != 0)
     {
-        printf("\nAssist : Cannot truncate and close the file");
+        perror("Assist : Cannot truncate and close the file");
         sprintf(tmpBuf, "Assist : Cannot truncate and close the file. Return value is -1. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
 
-        return -1;
+        return FILE_CLOSE_FAIL;
     }
     else
     {
         printf("\nAssist : clear_console_logs() pass");
         sprintf(tmpBuf, "Assist : request_console_logs() pass. Return value is 0. AssistDataEnds");
         write_socket(tmpBuf, sockfd);    
-        return 0;
+        return OK;
     }
 }
 
@@ -223,7 +223,7 @@ int health_check_assist_board(int sockfd)
 {
     printf("\nAssist : Health check is OK\n");
     write_socket("Assist : Health check is OK. AssistDataEnds", sockfd);
-    return 0;
+    return OK;
 }
 
 
@@ -241,6 +241,7 @@ int health_check_assist_board(int sockfd)
 int execute_request(char* request, int sockfd)
 {   
     char tmpBuf[1024] = {0};  
+    int retVal = 0;
 
     /* Append additional parameters to collect the console logs */
     /* sprintf(tmpBuf, "timeout 10s %s 2>&1 | tee %s", request, CONSOLE_LOG_FILE); */
@@ -253,17 +254,15 @@ int execute_request(char* request, int sockfd)
         request[strlen(request) - 1] = '\0';
         sprintf(tmpBuf, "%s 2>&1 >> %s &", request, CONSOLE_LOG_FILE);
     }
-    else
-    {
-        sprintf(tmpBuf, "%s 2>&1 >> %s", request, CONSOLE_LOG_FILE);    
-    }
+    sprintf(tmpBuf, "%s 2>&1 >> %s", request, CONSOLE_LOG_FILE);    
 
     /* Execute the request_final in assist board */
-    int retVal = system(tmpBuf);
+    retVal = system(tmpBuf);
 
-    if(retVal !=0)
+    if(retVal != 0)
     {
         printf("\nAssist : Execution of %s fail. Return value is %d\n", tmpBuf, retVal);
+        perror("Assist : ");
         sprintf(tmpBuf, "Assist : Execution of \"%s\" fail. Return value is %d. AssistDataEnds\n", request, retVal); 
         write_socket(tmpBuf, sockfd);
     }
@@ -276,8 +275,8 @@ int execute_request(char* request, int sockfd)
     return retVal;
 }
 
-
-#ifdef READY_TO_USE
+/* Below function/features can be used in future. Begin */
+#ifdef USE_IN_FUTURE
 
 /** @file services-utilities.c
  *  @brief iCheck assist board is blocked by some one.
@@ -289,19 +288,18 @@ int execute_request(char* request, int sockfd)
  *  @return 0
  */
 
-int check_assistboard_reserve(int sockfd)
+int check_assistboard_reserve(int sockfd, int reserve_assist)
 {
-    if(g_reserve_assist == 1)
+    if(reserve_assist == RESERVE_ASSIST)
     {
-        write_socket("Assist board is reserved. AssistDataEnds", sockfd);
+        write_socket("Assist board is reserved. Lock value is 999. AssistDataEnds", sockfd);
     }
     else
     {
-        write_socket("Assist board is not reserved. AssistDataEnds", sockfd);
+        write_socket("Assist board is not reserved. Lock value is 888. AssistDataEnds", sockfd);
     }
-    return 0;
+    return OK;
 }
-
 
 /** @file services-utilities.c
  *  @brief Reiserve the assist board service.
@@ -313,11 +311,19 @@ int check_assistboard_reserve(int sockfd)
  *  @return 0
  */
 
-int reserve_assist_service(int sockfd)
+int reserve_assist_service(int sockfd, int reserve_assist)
 {
-    g_reserve_assist=1;
-    write_socket("Assist board is reserved for you. AssistDataEnds", sockfd);
-    return 0;
+    if(reserve_assist != RESERVE_ASSIST)
+    {
+        reserve_assist = RESERVE_ASSIST;
+        write_socket("Assist board is reserved for you. Lock value is 999. AssistDataEnds", sockfd);
+    }
+    else
+    {
+        reserve_assist = UNRESERVE_ASSIST;
+        write_socket("Assist board is reserved for you. Lock value is 999. AssistDataEnds", sockfd);
+    }
+    return OK;
 }
 
 
@@ -331,11 +337,19 @@ int reserve_assist_service(int sockfd)
  *  @return 0
  */
 
-int unreserve_assist_service(int sockfd)
+int unreserve_assist_service(int sockfd, int reserve_assist)
 {
-    g_reserve_assist=0;
-    write_socket("Assist board is unreserved. AssistDataEnds", sockfd);
-    return 0;
+    if(reserve_assist != UNRESERVE_ASSIST)
+    {
+        reserve_assist = UNRESERVE_ASSIST;
+        write_socket("Assist board is unreserved. Lock value is 888. AssistDataEnds", sockfd);
+    }
+    else
+    {
+        reserve_assist = RESERVE_ASSIST;
+        write_socket("Assist board unreserv fail. Lock value is 999. AssistDataEnds", sockfd);
+    }
+    return OK;
 }
 
 
@@ -345,7 +359,7 @@ int unreserve_assist_service(int sockfd)
  *  Reboot the assist board
  *
  *  @param sockfd (Socket descriptor)
- *  @return retVal (0 on success and -1 on error).
+ *  @return retVal (0 on success, appripriate error on fail).
  */
 
 int reboot_assist_board(int sockfd)
@@ -356,19 +370,20 @@ int reboot_assist_board(int sockfd)
     sprintf(tmpBuf, "reboot -h now");
     retVal = system(tmpBuf);
 
-    if(0 == retVal)
+    if(OK == retVal)
     {
         printf("\nAssist : Board rebooting\n");
         sprintf(tmpBuf, "Assist : Board rebooting. Return value is %d. AssistDataEnds", retVal);
         write_socket(tmpBuf, sockfd);
-        retVal = 0;
+        retVal = OK;
     }
     else
     {
         printf("\nAssist : Board reboot fail\n");
+        perror("Assist : ");
         sprintf(tmpBuf, "Assist : Board reboot fail. Return value is %d. AssistDataEnds", retVal);
         write_socket(tmpBuf, sockfd);
-        retVal = -1;
+        retVal = BOARD_REBOOT_FAIL;
     }
     return retVal;
 }
@@ -380,7 +395,7 @@ int reboot_assist_board(int sockfd)
  *  Start a process/program
  *
  *  @param request (commands) and sockfd (socket descriptor)
- *  @return retVal (0 on success, -1 on failure).
+ *  @return retVal (0 on success, appripriate error on fail).
  */
 
 int start_process(char* request, int sockfd)
@@ -396,14 +411,15 @@ int start_process(char* request, int sockfd)
         printf("\nAssist : Process %s started successfully\n", &request[13]);
         sprintf(tmpBuf, "Assist : Process %s started successfully. Return value is %d. AssistDataEnds", &request[13], retVal);
         write_socket(tmpBuf, sockfd);
-        retVal = 0;
+        retVal = OK;
     }
     else
     {
-        printf("\nAssist : Process %s started successfully\n", &request[13]);
+        printf("\nAssist : Process %s fail\n", &request[13]);
+        perror("Assist : ");
         sprintf(tmpBuf, "Assist : Process %s failed to start. Return value is %d. AssistDataEnds", &request[13], retVal);
         write_socket(tmpBuf, sockfd);
-        retVal = -1;
+        retVal = PROCESS_START_FAIL;
     }
     return retVal;  
 }
@@ -415,7 +431,7 @@ int start_process(char* request, int sockfd)
  *  Check the process is runing, send the status
  *
  *  @param request (commands) and sockfd (socket descriptor)
- *  @return retVal (0 on success, -1 on failure).
+ *  @return retVal (0 on success, appripriate error on fail).
  */
 
 int check_process_running(char* request, int sockfd)
@@ -433,14 +449,15 @@ int check_process_running(char* request, int sockfd)
         printf("\nAssist : Process exist\n");
         sprintf(tmpBuf, "Assist : Process \"%s\" exist. AssistDataEnds", &request[20]);
         write_socket(tmpBuf, sockfd);
-        retVal = 0;
+        retVal = OK;
     }
     else
     {
         printf("\nProcess do not exist\n");
+        perror("Assist : ");        
         sprintf(tmpBuf, "Assist : Process \"%s\" do not exist. AssistDataEnds", &request[20]);
         write_socket(tmpBuf, sockfd);
-        retVal = -1;
+        retVal = PROCESS_NOT_RUNNING;
     }
     return retVal;
 }
@@ -452,7 +469,7 @@ int check_process_running(char* request, int sockfd)
  *  Check requested program is running. If so kill it by name
  *
  *  @param request (commands) and sockfd (socket descriptor)
- *  @return retVal (0 on success, -1 on failure).
+ *  @return retVal (0 on success, appripriate error on fail).
  */
 
 int kill_running_process(char* request, int sockfd)
@@ -470,16 +487,17 @@ int kill_running_process(char* request, int sockfd)
         printf("\nAssist : Process killed\n");
         sprintf(tmpBuf, "Assist : Process \"%s\" killed. Return value is %d. AssistDataEnds", &request[19], retVal);
         write_socket(tmpBuf, sockfd);
-        retVal = 0;
+        retVal = OK;
     }
     else
     {
         printf("\nProcess do not exist or not killed\n");
+        perror("Assist : ");
         sprintf(tmpBuf, "Assist : Process \"%s\" do not exist or not killed. Return value is %d. AssistDataEnds", &request[19], retVal);
         write_socket(tmpBuf, sockfd);
-        retVal = -1;
+        retVal = PROCESS_KILL_FAIL;
     }
     return retVal;
 }
-
 #endif
+/* Above function/features can be used in future. End */

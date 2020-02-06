@@ -1,12 +1,12 @@
 all: assist-server dut-client
 
-IDIR =./include
+DIR := ${CURDIR}
+IDIR =${DIR}/include
 CC=gcc
 #CC=/opt/gcc-arm-8.2-2018.08-x86_64-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
 CFLAGS=-I$(IDIR)
 
 ODIR=obj
-LDIR =../lib
 
 $(shell mkdir -p $(ODIR))
 
@@ -17,15 +17,15 @@ _OBJ = assist-server.o communication.o services.o services-utilities.o dut-clien
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.c $(DEPS)
-	$(CC) -g -Wall -Wextra -c -o $@ $< $(CFLAGS)
+	$(CC) -Wall -Wextra -c -o $@ $< $(CFLAGS)
 
 assist-server: $(OBJ)
-	$(CC) -g -Wall -Wextra -o $@ assist-server.c communication.c services.c services-utilities.c $(CFLAGS) $(LIBS)
+	$(CC) -Wall -Wextra -o $@ assist-server.c communication.c services.c services-utilities.c $(CFLAGS) $(LIBS)
 
 dut-client: $(OBJ)
-	$(CC) -g -Wall -Wextra -o $@ dut-client.c communication.c $(CFLAGS) $(LIBS)
+	$(CC) -Wall -Wextra -o $@ dut-client.c communication.c $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ assist-server dut-client
+	rm -rf $(ODIR)/ *~ core $(INCDIR)/*~ assist-server dut-client

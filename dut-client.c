@@ -1,6 +1,6 @@
 /** @file dut-client.c
  *
- *  Copyright 2007-2020 Mentor Graphics Corporation, A Siemens business
+ *  Copyright 2019-2020 Mentor Graphics Corporation, A Siemens business
  *
  *  This file is licensed under the terms of the GNU General Public License
  *  version 2.  This program  is licensed "as is" without any warranty of any
@@ -19,13 +19,15 @@
  *  Kill a process
  *  Check the process state
  *  Assist board health
+ *  Block the assist board for test
+ *  Unblock the assist board for test
  *
  *  @author Yashwanth Dasar (yashwanth_dasar@mentor.com)
  *  @bug No know bugs.
  */
 
 // Headers or data
-#include "include/assist.h"
+#include <assist.h>
 
 
 
@@ -35,7 +37,7 @@
  *  Create socket to establish communication with assist server
  *
  *  @param ip_addr (ip address of assist board)
- *  @return sockfs (socket descriptor). 0 on success and -1 on error
+ *  @return sockfs (socket descriptor). 0 on success and appripriate error on fail
  */
 
 int client_create_socket(char* ip_addr, int port)
@@ -47,14 +49,11 @@ int client_create_socket(char* ip_addr, int port)
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
     if (sockfd == -1) 
     { 
-        printf("\nDUT : Create socket fail\n"); 
-        return -1; 
+        perror("DUT : Create socket fail."); 
+        return SOCKET_FAIL; 
     } 
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Create socket pass\n"); 
-    }
     #endif
 
     /* Set zero in assist_addr to remove junk chars */
@@ -67,16 +66,13 @@ int client_create_socket(char* ip_addr, int port)
     assist_addr.sin_port = htons(port); 
     
     /* Connect to assist board */
-    if (connect(sockfd, (SA*)&assist_addr, sizeof(assist_addr)) != 0) 
+    if (connect(sockfd, (struct sockaddr*)&assist_addr, sizeof(assist_addr)) != 0) 
     { 
-        printf("\nDUT : Connect to assist board fail\n"); 
-        return -1; 
+        perror("DUT : Connect to assist board fail"); 
+        return CONNECT_FAIL; 
     } 
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Connect to assist board pass\n"); 
-    }
     #endif
 
     return sockfd;
@@ -120,7 +116,7 @@ char* client_read_socket(int sockfd)
 
         if(chunk_buffer_len == -1)
         {
-            printf("\nDUT : Error in read socket\n");
+            perror("DUT : Error in read socket");
             if(receive_data)
             {
                 free(receive_data); receive_data = NULL;
@@ -129,7 +125,7 @@ char* client_read_socket(int sockfd)
         }
         else if(chunk_buffer_len < 0)
         {
-            printf("\nDUT : Chunk buffer is less than zero\n");
+            perror("DUT : Chunk buffer is less than zero.");
             if(receive_data)
             {
                 free(receive_data); receive_data = NULL;            
@@ -138,7 +134,7 @@ char* client_read_socket(int sockfd)
         }
         else if(chunk_buffer_len == 0)
         {
-            printf("\nDUT : Chunk buffer is 0 bytes, try again\n");
+            perror("DUT : Chunk buffer is 0 bytes, try again.");
             sleep(2);
             error_count += 1;
             if(error_count >= 5)
@@ -154,6 +150,11 @@ char* client_read_socket(int sockfd)
         {
             char *tmp_receive_data = receive_data;
             receive_data = malloc(chunk_buffer_len + strlen(receive_data) + 1);
+            if(receive_data == NULL)
+            {
+                perror("Assist : malloc fail.");
+                break;
+            }
 
             strcpy(receive_data, tmp_receive_data);
             strcat(receive_data, chunk_buffer); 
@@ -172,6 +173,12 @@ char* client_read_socket(int sockfd)
         else
         {
             receive_data = malloc(chunk_buffer_len);
+            if(receive_data == NULL)
+            {
+                perror("Assist : malloc fail.");
+                break;
+            }
+
             strcpy(receive_data, chunk_buffer);
             #ifdef DEBUG
                 printf("\nDUT : Accumalated1 chunk buffer is : \n%s\n", receive_data);
@@ -206,16 +213,13 @@ int client_write_socket(char* request, int sockfd)
     request_len = strlen(request) + 1;
     if(write(sockfd, request, request_len) == -1)
     {
-        printf("\nDUT : Write socket fail");
-        return -1;
+        perror("DUT : Write socket fail.");
+        return WRITE_SOCKET_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Write socket pass\n");
-    }
     #endif
-    return 0;
+    return OK;
 }
 
 
@@ -226,7 +230,7 @@ int client_write_socket(char* request, int sockfd)
  *  Starting point for dut-client. Create socket to establish communication with assist server
  *
  *  @param ip_addr (ip address of assist board)
- *  @return sockfs (socket descriptor) on success and -1 on failure
+ *  @return sockfs (socket descriptor) on success and appripriate error on fail
  */
 
 
@@ -245,11 +249,17 @@ int main(int argc, char* argv[])
         printf("DUT : ./dut-client \"ConsoleLogsClear\"\n");
         printf("DUT : ./dut-client \"any-command\"\n");
         printf("DUT : ./dut-client \"ConsoleLogsRequest\"\n");
-        printf("DUT : ./dut-client \"AssistBoardReboot\"\n");
-        printf("DUT : ./dut-client \"StartProcess\"\n");
-        printf("DUT : ./dut-client \"CheckProcessRunning\"\n");
-        printf("DUT : ./dut-client \"KillRunningProcess\"\n");
-        return -1;
+        
+        /* Below function/features can be used in future. Begin */
+        #ifdef USE_IN_FUTURE
+            printf("DUT : ./dut-client \"AssistBoardReboot\"\n");
+            printf("DUT : ./dut-client \"StartProcess\"\n");
+            printf("DUT : ./dut-client \"CheckProcessRunning\"\n");
+            printf("DUT : ./dut-client \"KillRunningProcess\"\n");
+        #endif
+        /* Above function/features can be used in future. End */
+            
+        return MISSING_ARGUMENTS;
     }
     #ifdef DEBUG
     else
@@ -263,44 +273,35 @@ int main(int argc, char* argv[])
     if((ip_addr = get_config_value("ip_address")) == NULL)
     {
         printf("\nDUT : Get assist IP address fail\n");
-        return -1;
+        return CONFIG_FILE_IP_NOT_FOUND;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Assist IP address is \n%s\n", ip_addr);
-    }
     #endif    
 
     /* Read the configuration file and get the port number */   
     if((portBuf = get_config_value("port")) == NULL)
     {
         printf("\nAssist : Get port number fail\n");
-        return -1;   
+        return CONFIG_FILE_PORT_NOT_FOUND;   
     }    
     if((port = atoi(portBuf)) == 0)
     {
         printf("\nAssist : Get port number fail\n");
-        return -1;
+        return CONVERT_PORT_TO_INT_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Connecting TCP port is \n%s\n", ip_addr);
-    }
     #endif
 
     /* Create socket and connect */
     if((sockfd = client_create_socket(ip_addr, port)) == -1)
     {
         printf("\nDUT : Create socket fail\n");
-        return -1;
+        return CREATE_SOCKET_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Create socket pass\n");
-    }
     #endif
 
     /* Free the allocated memory for port */
@@ -318,16 +319,13 @@ int main(int argc, char* argv[])
     }
 
     /* Send request to assist board */
-    if(client_write_socket(argv[1], sockfd) == -1)
+    if(client_write_socket(argv[1], sockfd) != OK)
     {
         printf("\nDUT : Write socket fail\n");
-        return -1;
+        return WRITE_SOCKET_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Write socket pass\n");
-    }
     #endif
 
     /* Receive the assist board data */
@@ -335,13 +333,10 @@ int main(int argc, char* argv[])
     if((received_data = client_read_socket(sockfd)) == NULL)
     {
         printf("\nDUT : Read socket fail\n");
-        return -1;
+        return READ_SOCKET_FAIL;
     }
     #ifdef DEBUG
-    else
-    {
         printf("\nDUT : Read socket pass\n");
-    }
     #endif
 
     /* Close the socket */
@@ -356,5 +351,5 @@ int main(int argc, char* argv[])
     }   
 
     //return received_data;
-    return -1;
+    return OK;
 }

@@ -340,7 +340,10 @@ int main(int argc, char* argv[])
     #endif
 
     /* Close the socket */
-    close(sockfd); 
+    if(close(sockfd) != 0)
+    {
+        perror("DUT : Socket close fail.");
+    }
     
     printf("\nDUT : Data received from assist board is \n%s\n", received_data);
     

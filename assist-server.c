@@ -67,6 +67,7 @@ int main(void)
         printf("\nAssist : Create socket pass\n");
     #endif
 
+
     // loop indefinitely for wait or listen or receive mode
     while(1)
     {
@@ -76,7 +77,9 @@ int main(void)
         if((connfd = accept(sockfd, (struct sockaddr *)&dut_addr, (socklen_t*)&sockaddr_len)) < 0) 
         { 
             perror("Assist : Accept fail."); 
-            continue; 
+            // continue;
+            //return ACCEPT_FAIL ; 
+            exit(ACCEPT_FAIL);
         } 
         printf("\n============New connection==============\n"); 
 
@@ -90,7 +93,8 @@ int main(void)
                 continue;
             }
         } 
+        close(connfd);
     }
-    close(sockfd);
+    //close(sockfd);
     return OK;
 }

@@ -43,7 +43,7 @@
 #define USE_IN_FUTURE
 
 /* Uncomment below line and compile the code to get more informative logs */
-/* #define DEBUG 1 */
+#define DEBUG 1
 
 /* Error enum types */
 enum error {
@@ -55,6 +55,7 @@ enum error {
     CONFIG_FILE_PORT_NOT_FOUND,
     CONVERT_PORT_TO_INT_FAIL,
     CREATE_SOCKET_FAIL = 201,
+    ACCEPT_FAIL,
     WRITE_SOCKET_FAIL,
     READ_SOCKET_FAIL,
     SOCKET_FAIL,

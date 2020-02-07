@@ -254,8 +254,10 @@ int execute_request(char* request, int sockfd)
         request[strlen(request) - 1] = '\0';
         sprintf(tmpBuf, "%s 2>&1 >> %s &", request, CONSOLE_LOG_FILE);
     }
-    sprintf(tmpBuf, "%s 2>&1 >> %s", request, CONSOLE_LOG_FILE);    
-
+    else
+    {
+        sprintf(tmpBuf, "%s 2>&1 >> %s", request, CONSOLE_LOG_FILE);    
+    }
     /* Execute the request_final in assist board */
     retVal = system(tmpBuf);
 

@@ -30,8 +30,8 @@
 
 int create_socket(int port)
 {
-    int sockfd=0; 
-    struct sockaddr_in assist_addr={0}; 
+    int sockfd = 0, enable = 0; 
+    struct sockaddr_in assist_addr = {0}; 
 
     /* Create socket  */
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
@@ -46,6 +46,8 @@ int create_socket(int port)
 
     /* Set zero in assist_addr to remove junk chars */
     bzero(&assist_addr, sizeof(assist_addr));
+
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
 
     /* Assign ip address and port to socket  */
     assist_addr.sin_family = AF_INET; 

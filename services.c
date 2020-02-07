@@ -32,25 +32,23 @@
  *  DUT request is compared/analised. Based on request appropriate utility is called.
  *
  *  @param sockfd (socket descriptor)
- *  @return retVal (0 on success, appripriate error on fail).
+ *  @return retVal (0 on success, appropriate error on fail).
  */
 
 
 int service_request(int sockfd, int reserve_assist) 
 {       
-    char* request = NULL;
     int retVal = 0;
+    char* request = NULL;
+    char tmpBuf[256] = {0};    
 
     if((request = read_socket(sockfd)) == NULL)
     {
         printf("\nAssist : read_socket() fail\n");
-        write_socket("Assist : read_socket() fail. AssistDataEnds", sockfd);
+        sprintf(tmpBuf, "Assist : read_socket() fail. AssistDataEnds");
+        write_socket(tmpBuf, sockfd);
         retVal = WRITE_SOCKET_FAIL;
     }
-    #ifdef DEBUG
-        printf("\nAssist : Recv/read pass\n");
-    #endif
-
 
     /* Receive console logs */
     if(strcmp(request, "ConsoleLogsRequest") == 0)
@@ -85,7 +83,7 @@ int service_request(int sockfd, int reserve_assist)
             retVal = reserve_assist_service(sockfd, reserve_assist);
         }
 
-        /* Unreserve the assost board */
+        /* Unreserve the assist board */
         else if(strcmp(request, "AssistBoardUnreserve") == 0)
         {
             retVal = unreserve_assist_service(sockfd, reserve_assist);
@@ -114,9 +112,7 @@ int service_request(int sockfd, int reserve_assist)
         {
             retVal = kill_running_process(request, sockfd);
         }   
-    #endif
-    /* Above function/features can be used in future. End */
-
+    #endif // USE_IN_FUTURE
 
     /* Execute the command */
     else 

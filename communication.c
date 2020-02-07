@@ -6,7 +6,7 @@
  *  version 2.  This program  is licensed "as is" without any warranty of any
  *  kind, whether express or implied.
  *
- *  @brief Socket communication functions available. Create socket, read/recevive, write/send data.
+ *  @brief Socket communication functions available. Create socket, read/receive, write/send data.
  *
  *  For this application, receive data is not bigger than 1K.
  *  But send data can be closer to 8K, 32K. For bigger data, a 
@@ -30,19 +30,16 @@
 
 int create_socket(int port)
 {
-    int sockfd = 0, enable = 0; 
+    int sockfd = 0;
+    int enable = 0; 
     struct sockaddr_in assist_addr = {0}; 
 
     /* Create socket  */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-    if (sockfd == -1) 
+    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
     { 
         perror("Assist : Create socket fail."); 
         return SOCKET_FAIL; 
     } 
-    #ifdef DEBUG
-        printf("Assist : Create socket pass\n"); 
-    #endif
 
     /* Set zero in assist_addr to remove junk chars */
     bzero(&assist_addr, sizeof(assist_addr));
@@ -60,20 +57,13 @@ int create_socket(int port)
         perror("Assist : Bind socket fail."); 
         return BIND_FAIL; 
     } 
-    #ifdef DEBUG
-        printf("Assist : Bind socket pass\n"); 
-    #endif
 
     /* Listen using socket. Max connections can be 1 */
-    if ((listen(sockfd, 1)) != 0) 
+    if ((listen(sockfd, 1)) != SUCCESS) 
     { 
         perror("Assist : Listen socket fail"); 
         return LISTEN_FAIL; 
     } 
-    #ifdef DEBUG
-        printf("Assist : Listen socket pass\n"); 
-    #endif
-
     return sockfd;
 }
 
@@ -91,8 +81,8 @@ int create_socket(int port)
 
 char* read_socket(int sockfd)
 {
-    char *request = NULL;
     int request_len = 0;
+    char *request = NULL;
 
     /* Allocate dynamic memory. We know requests length dont cross 1024 bytes, so allocate with fix size */
     request = (char *)malloc(MAX_SIZE);
@@ -101,33 +91,20 @@ char* read_socket(int sockfd)
         perror("Assist : Memory allocation fail at read_socket().");
         return NULL;
     }
-    #ifdef DEBUG
-        printf("\nAssist : Memory allocation pass\n");
-    #endif
 
     /* Recv/read data from socket */
     if((request_len = read(sockfd, request, MAX_SIZE)) == -1)
     {
         perror("Assist : Read fail.");
-        free(request); request = NULL;
+        free(request); 
+        request = NULL;
         return NULL;
     }
-    #ifdef DEBUG
-        printf("\nAssist : Read pass\n");
-    #endif
-
     /* At end there is "\n". Remove it */
     request[request_len - 1]='\0';
 
-    #ifdef DEBUG
-        printf("\nAssist : Request/command from DUT is \n%s\n", request);
-    #endif
-
     return request;
 }
-
-
-
 
 
 /** @file communication.c
@@ -138,7 +115,7 @@ char* read_socket(int sockfd)
  *  In case of failure, error has to be sent.
  *  Other than console logs request, success or error has to be sent.
  *
- *  @param console_logs (console logs or errors or infomration) and sockfd (socket descriptor)
+ *  @param console_logs (console logs or errors or information) and sockfd (socket descriptor)
  *  @return retVal. 0 on success, -1 on error
  */
 
@@ -148,13 +125,13 @@ int write_socket(char* console_logs, int sockfd)
     int total_send_len = 0;
     int tmp_send_len = 0;   
     int tmp_total_send_len = 0;
+    int wait_time = 600;
     char tmpBuf[MAX_SIZE] = {0};
     time_t end_wait = 0;
-    int wait_time = 600;
 
     #ifdef DEBUG
-        printf("\nAssist : send data length is %ld\n", strlen(console_logs));
-        printf("\nAssist : send data is \n%s\n", console_logs);
+        printf("\nAssist : write-socket() : Send data is %s\n", console_logs);
+        printf("\nAssist : write-socket() : Send data length is %ld\n", strlen(console_logs));
     #endif
 
     /* Send console logs or command execution status back to DUT.  */
@@ -177,13 +154,14 @@ int write_socket(char* console_logs, int sockfd)
     /* while(1) */
     while (time (NULL) < end_wait)
     {
-        #ifdef DEBUG
-            printf("\nSend temporary buffer is \n%s\n", tmpBuf);
-        #endif
-
         /* send data through socket */
-        sleep(1);
         tmp_send_len = write(sockfd, tmpBuf, tmp_send_len);
+
+        #ifdef DEBUG
+            printf("\nAssist : write-socket() : Send chunk data is ...\n%s\n", tmpBuf);
+            printf("\nAssist : write-socket() : Send data length is %ld\n", strlen(tmpBuf));
+            printf("\nAssist : write-socket() : Sent data length is %d\n", tmp_send_len);            
+        #endif
 
         /* Check the data send error */
         if(tmp_send_len == -1)
@@ -208,17 +186,11 @@ int write_socket(char* console_logs, int sockfd)
         /* Know till now how much data is sent */
         tmp_total_send_len = tmp_total_send_len + tmp_send_len -1;
 
-        #ifdef DEBUG
-            printf("\nAssist : Send length is %d \n", tmp_send_len - 1);
-            printf("\nAssist : Sent total len is %d\n", tmp_total_send_len);
-            printf("\nAssist : Remaining send length is %d \n", total_send_len - tmp_total_send_len);
-        #endif
-
         /* Deciding factor to know data send is end or complete */
         if((total_send_len - tmp_total_send_len) <= 0)
         {
             printf("\nAssist : Sent complete data\n");
-            retVal = OK;
+            retVal = SUCCESS;
             break;
         }
 
@@ -236,6 +208,11 @@ int write_socket(char* console_logs, int sockfd)
         }
         //strncpy(tmpBuf, &console_logs[total_send_len], MAX_SIZE-1);
     }
+
+    #ifdef DEBUG
+        printf("\nAssist : write-socket() : Data send completed successfully\n");
+    #endif
+
     return retVal;
 }
 
@@ -251,10 +228,9 @@ int write_socket(char* console_logs, int sockfd)
 
 char* get_config_value(char* parameter)
 {
-
-    FILE *assist_conf=NULL;
-    char line[256];
+    char line[256] = {0};
     char* value_address = NULL;
+    FILE* assist_conf=NULL;
 
     if((assist_conf = fopen(ASSIST_CONF_FILE, "r")) == NULL)
     {

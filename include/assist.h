@@ -42,29 +42,30 @@
 
 #define USE_IN_FUTURE
 
-/* Uncomment below line and compile the code to get more informative logs */
+/* Uncomment below line to get ebug messages */
 #define DEBUG 1
 
 /* Error enum types */
 enum error {
-	OK = 0,
-	GENERAL_ERROR = -1,
-	MISSING_ARGUMENTS = -2,
-    CONFIG_FILE_NOT_FOUND = -101,    
+	SUCCESS = 0,
+	GENERAL_ERROR = -500,
+	MISSING_ARGUMENTS,
+    CONFIG_FILE_NOT_FOUND,    
     CONFIG_FILE_IP_NOT_FOUND,
     CONFIG_FILE_PORT_NOT_FOUND,
     CONVERT_PORT_TO_INT_FAIL,
-    CREATE_SOCKET_FAIL = 201,
+    CREATE_SOCKET_FAIL,
     ACCEPT_FAIL,
     WRITE_SOCKET_FAIL,
     READ_SOCKET_FAIL,
+    SOCKET_CLOSE_FAIL,
     SOCKET_FAIL,
     BIND_FAIL,
     LISTEN_FAIL,
     WRITE_FAIL1,
     WRITE_FAIL2,
     CONNECT_FAIL,
-    COLLECT_CONSOLE_LOGS_FAIL = 301,
+    COLLECT_CONSOLE_LOGS_FAIL,
     CONSOLE_LOGS_ZERO_SIZE,
     FILE_OPEN_FAIL,
     FILE_CLOSE_FAIL,
@@ -91,7 +92,7 @@ int health_check_assist_board(int sockfd);
 int execute_request(char* request, int sockfd);
 char* get_config_value(char* parameter);
 
-/* Below function/features can be used in future. Begin */
+/* Below function/features can be used in future. */
 #ifdef USE_IN_FUTURE
 	int check_assistboard_reserve(int sockfd, int reserve_assist);
 	int reserve_assist_service(int sockfd, int reserve_assist);
@@ -100,7 +101,7 @@ char* get_config_value(char* parameter);
 	int start_process(char* request, int sockfd);
 	int check_process_running(char* request, int sockfd);
 	int kill_running_process(char* request, int sockfd);
-#endif
-/* Above function/features can be used in future. Begin */	
+#endif //USE_IN_FUTURE
+	
 
-#endif
+#endif // _ASSIST_HEADER

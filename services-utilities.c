@@ -36,7 +36,7 @@
  *  Collect the console logs. 
  *
  *  @param sockfd (socket descriptor)
- *  @return retVal (success 0, failure -1).
+ *  @return retVal (success 0, failure negative numbers).
  */
 
 int request_console_logs(int sockfd)
@@ -55,7 +55,7 @@ int request_console_logs(int sockfd)
     }
 
     /* If the console logs length is zero byte or less, it is error */
-    else if((retVal != SUCCESS) || (strlen(console_logs) < 1))
+    if((retVal != COLLECT_CONSOLE_LOGS_FAIL) && (strlen(console_logs) < 1))
     {
         printf("\nAssist : collect_console_logs() null\n");
         sprintf(tmpBuf, "Assist : collect_console_logs() fail. Log file doesnt has logs. Return value is -1. AssistDataEnds");
@@ -63,7 +63,7 @@ int request_console_logs(int sockfd)
     }
 
     /* Send/write  console logs to socket */
-    else if((retVal != SUCCESS) || (write_socket(console_logs, sockfd) != SUCCESS))
+    else if((retVal != CONSOLE_LOGS_ZERO_SIZE) && (write_socket(console_logs, sockfd) != SUCCESS))
     {
         printf("\nAssist : Write console logs failed\n");
         sprintf(tmpBuf, "Assist : collect_console_logs() fail. Write to socket fail. Return value is -1. AssistDataEnds");
@@ -75,17 +75,6 @@ int request_console_logs(int sockfd)
     {
         free(console_logs); 
         console_logs = NULL;    
-    }
-
-    if(retVal != SUCCESS)
-    {
-        write_socket(tmpBuf, sockfd);
-    }
-    else
-    {
-        retVal = SUCCESS;
-        sprintf(tmpBuf, "Assist : collect_console_logs() pass. Return value is 0. AssistDataEnds");
-        write_socket(tmpBuf, sockfd);
     }
     return retVal;
 }
@@ -139,8 +128,9 @@ char* collect_console_logs(void)
 
     if(console_logs_len > 0)
     {
-        printf("\nconsole log len is %d\n", console_logs_len);
-        console_logs = malloc(console_logs_len + strlen("\n") + strlen("AssistDataEnds "));
+        printf("\nAssist : console log len is = %d\n", console_logs_len);
+        console_logs = malloc(console_logs_len + strlen("\n") + strlen("AssistDataEnds"));
+        printf("\nAssist : After adding tag, console log len is = %ld\n", (console_logs_len + strlen("\n") + strlen("AssistDataEnds")));
     }
 
     if(console_logs == NULL)
@@ -182,7 +172,7 @@ int clear_console_logs(int sockfd)
     if((fd_cmd_output = fopen(CONSOLE_LOG_FILE, "w")) == NULL)
     {
         perror("Assist : Cannot open the file.");
-        sprintf(tmpBuf, "Assist : Cannot open the file. Return value is -1. AssistDataEnds");
+        sprintf(tmpBuf, "Cannot open the file. Return value is -1. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
 
         return FILE_OPEN_FAIL;
@@ -191,15 +181,15 @@ int clear_console_logs(int sockfd)
     if(fclose(fd_cmd_output) != 0)
     {
         perror("Assist : Cannot truncate and close the file");
-        sprintf(tmpBuf, "Assist : Cannot truncate and close the file. Return value is -1. AssistDataEnds");
+        sprintf(tmpBuf, "Cannot truncate and close the file. Return value is -1. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
 
         return FILE_CLOSE_FAIL;
     }
     else
     {
-        printf("\nAssist : clear_console_logs() pass");
-        sprintf(tmpBuf, "Assist : request_console_logs() pass. Return value is 0. AssistDataEnds");
+        printf("\nAssist : clear_console_logs() = pass\n");
+        sprintf(tmpBuf, "ConsoleLogsClear pass. Return value is 0. AssistDataEnds");
         write_socket(tmpBuf, sockfd);    
         return SUCCESS;
     }
@@ -259,13 +249,13 @@ int execute_request(char* request, int sockfd)
     {
         printf("\nAssist : Execution of %s fail. Return value is %d\n", tmpBuf, retVal);
         perror("Assist : ");
-        sprintf(tmpBuf, "Assist : Execution of \"%s\" fail. Return value is %d. AssistDataEnds\n", request, retVal); 
+        sprintf(tmpBuf, "Execution of \"%s\" fail. Return value is %d. AssistDataEnds\n", request, retVal); 
         write_socket(tmpBuf, sockfd);
     }
     else
     {
         printf("\nAssist : Execution of %s pass. Return value is %d\n", tmpBuf, retVal);
-        sprintf(tmpBuf, "Assist : Execution of \"%s\" pass. Return value is %d. AssistDataEnds\n", request, retVal);
+        sprintf(tmpBuf, "Execution of \"%s\" pass. Return value is %d. AssistDataEnds\n", request, retVal);
         write_socket(tmpBuf, sockfd);
     }
     return retVal;
@@ -286,12 +276,12 @@ int execute_request(char* request, int sockfd)
  *  @return 0
  */
 
-int check_assistboard_reserve(int sockfd, int reserve_assist)
+int check_assistboard_reserve(int sockfd, int* reserve_assist)
 {
     char tmpBuf[256] = {0};
 
 
-    if(reserve_assist == RESERVE_ASSIST)
+    if(*reserve_assist == RESERVE_ASSIST)
     {
         sprintf(tmpBuf, "Assist board is reserved. Lock value is 999. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
@@ -314,19 +304,19 @@ int check_assistboard_reserve(int sockfd, int reserve_assist)
  *  @return 0
  */
 
-int reserve_assist_service(int sockfd, int reserve_assist)
+int reserve_assist_service(int sockfd, int* reserve_assist)
 {
     char tmpBuf[256] = {0};
 
-    if(reserve_assist != RESERVE_ASSIST)
+    if(*reserve_assist != RESERVE_ASSIST)
     {
-        reserve_assist = RESERVE_ASSIST;
+        *reserve_assist = RESERVE_ASSIST;
         sprintf(tmpBuf, "Assist board is reserved for you. Lock value is 999. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
     }
     else
     {
-        reserve_assist = UNRESERVE_ASSIST;
+        *reserve_assist = UNRESERVE_ASSIST;
         sprintf(tmpBuf, "Assist board is reserved for you. Lock value is 999. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
     }
@@ -344,19 +334,19 @@ int reserve_assist_service(int sockfd, int reserve_assist)
  *  @return 0
  */
 
-int unreserve_assist_service(int sockfd, int reserve_assist)
+int unreserve_assist_service(int sockfd, int* reserve_assist)
 {
     char tmpBuf[256] = {0};
 
-    if(reserve_assist != UNRESERVE_ASSIST)
+    if(*reserve_assist != UNRESERVE_ASSIST)
     {
-        reserve_assist = UNRESERVE_ASSIST;
+        *reserve_assist = UNRESERVE_ASSIST;
         sprintf(tmpBuf, "Assist board is unreserved. Lock value is 888. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
     }
     else
     {
-        reserve_assist = RESERVE_ASSIST;
+        *reserve_assist = RESERVE_ASSIST;
         sprintf(tmpBuf, "Assist board unreserv fail. Lock value is 999. AssistDataEnds");
         write_socket(tmpBuf, sockfd);
     }

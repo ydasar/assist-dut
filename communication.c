@@ -25,7 +25,7 @@
  *  Create tcp/ip socket. And make it ready to use.
  *
  *  @param none
- *  @return sockfd on success and -1 on error.
+ *  @return sockfd on success and error number(negative) on failure.
  */
 
 int create_socket(int port)
@@ -75,7 +75,7 @@ int create_socket(int port)
  *  Read data from socket. Data can be commands, console log request, console log clear request etc.
  *
  *  @param sockfd (Socket descriptor)
- *  @return request on success, NULL on error
+ *  @return request (string) on success, NULL on error
  */
 
 
@@ -83,26 +83,34 @@ char* read_socket(int sockfd)
 {
     int request_len = 0;
     char *request = NULL;
+    struct message recv_data = {0};
 
-    /* Allocate dynamic memory. We know requests length dont cross 1024 bytes, so allocate with fix size */
-    request = (char *)malloc(MAX_SIZE);
-    if(request == NULL)
-    {
-        perror("Assist : Memory allocation fail at read_socket().");
-        return NULL;
-    }
 
     /* Recv/read data from socket */
-    if((request_len = read(sockfd, request, MAX_SIZE)) == -1)
+    if((request_len = read(sockfd, &recv_data, sizeof(recv_data))) == -1)
     {
         perror("Assist : Read fail.");
         free(request); 
         request = NULL;
         return NULL;
     }
-    /* At end there is "\n". Remove it */
-    request[request_len - 1]='\0';
 
+    #ifdef DEBUG
+        printf("\nAssist : read_socket() : return length is = %d\n", request_len);
+        printf("\nAssist : read_socket() : recv_data.current_length is = %d\n", recv_data.current_length);
+        printf("\nAssist : read_socket() : recv_data.total_length is = %d\n", recv_data.total_length);
+        printf("\nAssist : read_socket() : recv_data.data is ...\n%s\n", recv_data.data);
+        printf("\nAssist : read_socket() : recv_data is ...\n%s\n", (char*) &recv_data);
+    #endif
+
+    /* Allocate dynamic memory. We know requests length dont cross 1024 bytes, so allocate with fix size */
+    request = (char *)malloc(strlen(recv_data.data));
+    if(request == NULL)
+    {
+        perror("Assist : Memory allocation fail at read_socket().");
+        return NULL;
+    }
+    strcpy(request, recv_data.data);
     return request;
 }
 
@@ -116,7 +124,7 @@ char* read_socket(int sockfd)
  *  Other than console logs request, success or error has to be sent.
  *
  *  @param console_logs (console logs or errors or information) and sockfd (socket descriptor)
- *  @return retVal. 0 on success, -1 on error
+ *  @return retVal. 0 on success, error number (negative) on error
  */
 
 int write_socket(char* console_logs, int sockfd)
@@ -126,41 +134,44 @@ int write_socket(char* console_logs, int sockfd)
     int tmp_send_len = 0;   
     int tmp_total_send_len = 0;
     int wait_time = 600;
-    char tmpBuf[MAX_SIZE] = {0};
     time_t end_wait = 0;
+    struct message send_data = {0};
 
     #ifdef DEBUG
-        printf("\nAssist : write-socket() : Send data is %s\n", console_logs);
-        printf("\nAssist : write-socket() : Send data length is %ld\n", strlen(console_logs));
+        printf("\nAssist : write-socket() : Send data length is = %ld\n", strlen(console_logs));
+        printf("\nAssist : write-socket() : Send data is ...\n%s\n", console_logs);
     #endif
 
-    /* Send console logs or command execution status back to DUT.  */
+    /* Send console logs or command execution status back to DUT. */
     total_send_len = strlen(console_logs);
+    send_data.total_length = total_send_len;
 
     /* Check the data length, if data length more than 1K, send data in chunks/fragments */
-    if(total_send_len >= (MAX_SIZE-1))
+    if(total_send_len > DATA_LEN)
     {
-        strncpy(tmpBuf, &console_logs[0], MAX_SIZE-1);  
-        tmp_send_len = MAX_SIZE ;
+        strncpy(send_data.data, &console_logs[0], DATA_LEN);  
+        send_data.current_length = DATA_LEN;
     }
     else
     {
-        strcpy(tmpBuf, &console_logs[0]);
-        tmp_send_len = total_send_len + 1;
+        strncpy(send_data.data, &console_logs[0], send_data.total_length);
+        send_data.current_length = send_data.total_length;
     }
     
     /* Loop till last byte is sent */
     end_wait = time (NULL) + wait_time ;
-    /* while(1) */
     while (time (NULL) < end_wait)
     {
         /* send data through socket */
-        tmp_send_len = write(sockfd, tmpBuf, tmp_send_len);
+        tmp_send_len = write(sockfd, &send_data, sizeof(send_data));
 
         #ifdef DEBUG
-            printf("\nAssist : write-socket() : Send chunk data is ...\n%s\n", tmpBuf);
-            printf("\nAssist : write-socket() : Send data length is %ld\n", strlen(tmpBuf));
-            printf("\nAssist : write-socket() : Sent data length is %d\n", tmp_send_len);            
+            printf("\nAssist : write-socket() : send_data is ...\n%s\n", (char*) &send_data);
+            printf("\nAssist : write-socket() : send_data.data is ...\n%s\n", send_data.data);
+            printf("\nAssist : write-socket() : send_data.total_length is = %d\n", send_data.total_length);
+            printf("\nAssist : write-socket() : send_data.current_length is = %d\n", send_data.current_length);
+            printf("\nAssist : write-socket() : return value is = %d\n", tmp_send_len);
+            printf("\nAssist : write-socket() : tmp_total_send_len value is = %d\n", tmp_total_send_len);            
         #endif
 
         /* Check the data send error */
@@ -184,7 +195,8 @@ int write_socket(char* console_logs, int sockfd)
         }
         
         /* Know till now how much data is sent */
-        tmp_total_send_len = tmp_total_send_len + tmp_send_len -1;
+        tmp_total_send_len = tmp_total_send_len + tmp_send_len - 5;
+        bzero(send_data.data, DATA_LEN);
 
         /* Deciding factor to know data send is end or complete */
         if((total_send_len - tmp_total_send_len) <= 0)
@@ -195,18 +207,18 @@ int write_socket(char* console_logs, int sockfd)
         }
 
         /* Still data is there to send */
-        if((total_send_len - tmp_total_send_len) >= (MAX_SIZE-1))
+        if((total_send_len - tmp_total_send_len) > DATA_LEN)
         {
-            strncpy(tmpBuf, &console_logs[tmp_total_send_len], MAX_SIZE-1);
-            tmp_send_len = MAX_SIZE ;
+            strncpy(send_data.data, &console_logs[tmp_total_send_len], DATA_LEN);
+            send_data.current_length = DATA_LEN;
         }
         /* This is last chunk which is less then 1K */
         else
         {
-            strncpy(tmpBuf, &console_logs[tmp_total_send_len], MAX_SIZE-1);
-            tmp_send_len = total_send_len - tmp_total_send_len + 1;
+            send_data.current_length = total_send_len - tmp_total_send_len;
+            printf("\nThe length is %d\n", send_data.current_length);
+            strncpy(send_data.data, &console_logs[tmp_total_send_len], (total_send_len - tmp_total_send_len));
         }
-        //strncpy(tmpBuf, &console_logs[total_send_len], MAX_SIZE-1);
     }
 
     #ifdef DEBUG
@@ -223,7 +235,7 @@ int write_socket(char* console_logs, int sockfd)
  *  Read config file search for parameter and return the value
  *
  *  @param parameter
- *  @return value (can be IP address or port etc). On error return NULL.
+ *  @return value (can be IP address or port etc). NULL on error.
  */
 
 char* get_config_value(char* parameter)

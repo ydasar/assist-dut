@@ -33,17 +33,27 @@
 #include <netpacket/packet.h>
 #include <errno.h>
 
+
 /* Defines or data */
-#define MAX_SIZE 4096
+#define DATA_LEN 4091
+#define MAX_SIZE (DATA_LEN+4) //4092
 #define ASSIST_CONF_FILE "/opt/ltp/testcases/bin/assist_address.conf"
 #define CONSOLE_LOG_FILE "/tmp/cmd_console_logs"
 #define RESERVE_ASSIST 999
 #define UNRESERVE_ASSIST 888
-
-#define USE_IN_FUTURE
-
+#define PADDING 4
+/* Uncomment below option to see some additional feature*/
+//#define USE_IN_FUTURE
 /* Uncomment below line to get ebug messages */
-#define DEBUG 1
+//#define DEBUG 1
+
+struct message
+{
+    char data[DATA_LEN];
+    short total_length;
+    short current_length;
+};
+
 
 /* Error enum types */
 enum error {
@@ -73,6 +83,8 @@ enum error {
     PROCESS_START_FAIL,
     PROCESS_NOT_RUNNING,
     PROCESS_KILL_FAIL,
+    REQUEST_BIGGER_FAIL,
+    DATA_NULL,
 };
 
 
@@ -82,7 +94,7 @@ char* read_socket(int sockfd);
 int write_socket(char* console_logs, int sockfd);
 
 /* Service devider functions */
-int service_request(int sockfd, int reserve_assist);
+int service_request(int sockfd, int* reserve_assist);
 
 // Service functions
 int request_console_logs(int sockfd);
@@ -94,9 +106,9 @@ char* get_config_value(char* parameter);
 
 /* Below function/features can be used in future. */
 #ifdef USE_IN_FUTURE
-	int check_assistboard_reserve(int sockfd, int reserve_assist);
-	int reserve_assist_service(int sockfd, int reserve_assist);
-	int unreserve_assist_service(int sockfd, int reserve_assist);
+	int check_assistboard_reserve(int sockfd, int* reserve_assist);
+	int reserve_assist_service(int sockfd, int* reserve_assist);
+	int unreserve_assist_service(int sockfd, int* reserve_assist);
 	int reboot_assist_board(int sockfd);
 	int start_process(char* request, int sockfd);
 	int check_process_running(char* request, int sockfd);

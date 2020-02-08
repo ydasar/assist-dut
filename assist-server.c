@@ -25,7 +25,7 @@
  *  Once new request come from DUT, accept the connection and start processing the request
  *
  *  @param none
- *  @return 0 on success and -1 on error
+ *  @return 0 on success and error number(negative) on failure.
  */
 
 int main(void) 
@@ -75,10 +75,10 @@ int main(void)
             perror("Assist : Accept fail."); 
             exit(ACCEPT_FAIL);
         } 
-        printf("\n============New connection==============\n"); 
+        printf("\n============Assist new connection==============\n"); 
 
         // Start receiving the requests or commands from DUT board
-        if(service_request(connfd, reserve_assist) != SUCCESS)
+        if(service_request(connfd, &reserve_assist) != SUCCESS)
         {
             printf("\nAssist : Something went wrong at assist board. Please check\n");
             sprintf(tmpBuf, "Assist : Something went wrong at assist board. Please check. AssistDataEnds");

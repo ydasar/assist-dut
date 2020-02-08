@@ -36,7 +36,7 @@
  */
 
 
-int service_request(int sockfd, int reserve_assist) 
+int service_request(int sockfd, int* reserve_assist) 
 {       
     int retVal = 0;
     char* request = NULL;

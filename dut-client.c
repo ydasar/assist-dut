@@ -89,6 +89,7 @@ char* client_read_socket(int sockfd)
     char chunk_buffer[MAX_SIZE]={0};
     char* receive_data = NULL; 
     time_t end_wait=0;
+    struct message recv_data = {0};
 
     /* Make buffer zero so that we can avoid accidental termination */
     bzero(chunk_buffer, MAX_SIZE);
@@ -99,12 +100,14 @@ char* client_read_socket(int sockfd)
     end_wait = time (NULL) + wait_time ;
     while (time (NULL) < end_wait)
     {
-        chunk_buffer_len = read(sockfd, chunk_buffer, MAX_SIZE);
-        chunk_buffer[chunk_buffer_len]='\0';
+        chunk_buffer_len = read(sockfd, (void*)&recv_data, sizeof(recv_data));
         
         #ifdef DEBUG
-            printf("\nDUT : client_read_socket() : Data received is ... \n%s\n", chunk_buffer);
-            printf("\nDUT : client_read_socket() : Data received length is ... \n%ld\n", strlen(chunk_buffer));
+            printf("\nDUT : client_read_socket() : return length is = %d\n", chunk_buffer_len);
+            printf("\nDUT : client_read_socket() : recv_data.current_length is = %d\n", recv_data.current_length);
+            printf("\nDUT : client_read_socket() : recv_data.total_length is = %d\n", recv_data.total_length);
+            printf("\nDUT : client_read_socket() : recv_data.data received is ... \n%s\n", recv_data.data);
+            printf("\nDUT : client_read_socket() : recv_data received is ... \n%s\n", (char*) &recv_data);
         #endif
 
         if(chunk_buffer_len == -1)
@@ -143,7 +146,7 @@ char* client_read_socket(int sockfd)
         if((receive_data) && (strlen(receive_data) > 0))
         {
             char *tmp_receive_data = receive_data;
-            receive_data = malloc(chunk_buffer_len + strlen(receive_data) + 1);
+            receive_data = malloc(recv_data.current_length + strlen(receive_data) + 1);
             if(receive_data == NULL)
             {
                 perror("Assist : malloc fail.");
@@ -151,7 +154,7 @@ char* client_read_socket(int sockfd)
             }
 
             strcpy(receive_data, tmp_receive_data);
-            strcat(receive_data, chunk_buffer); 
+            strcat(receive_data, recv_data.data); 
 
             if(tmp_receive_data)
             {
@@ -162,13 +165,13 @@ char* client_read_socket(int sockfd)
         /* First time we are looping */
         else
         {
-            receive_data = malloc(chunk_buffer_len);
+            receive_data = malloc(recv_data.current_length);
             if(receive_data == NULL)
             {
                 perror("Assist : malloc fail.");
                 break;
             }
-            strcpy(receive_data, chunk_buffer);
+            strcpy(receive_data, recv_data.data);
         }
 
         /* Indication that this is the end of buffer */
@@ -197,15 +200,25 @@ char* client_read_socket(int sockfd)
  *  Write buffer to socket. Generally client commands are input.
  *
  *  @param sockfd (socket descriptor) request(client request or commands)
- *  @return 0 on success and error on failure
+ *  @return 0 on success and error number (negative) on failure
  */
 
 int client_write_socket(char* request, int sockfd)
-{
-    int request_len = 0;
+{    
+    struct message send_data = {0};
 
-    request_len = strlen(request) + 1;
-    if(write(sockfd, request, request_len) == -1)
+    send_data.current_length = strlen(request);
+    send_data.total_length = send_data.current_length;
+
+    strncpy(send_data.data, request, send_data.current_length);
+
+    #ifdef DEBUG
+        printf("\nDUT : send_data length is = %ld\n", sizeof(send_data));
+        printf("\nDUT: send_data.data length is = %d\n", send_data.total_length);
+        printf("\nDUT : send_data.data is ... \n%s\n", send_data.data);
+    #endif
+
+    if(write(sockfd, &send_data, sizeof(send_data)) == -1)
     {
         perror("DUT : Write socket fail.");
         return WRITE_SOCKET_FAIL;
@@ -251,6 +264,12 @@ int main(int argc, char* argv[])
         #endif // USE_IN_FUTURE
             
         return MISSING_ARGUMENTS;
+    }
+
+    if(strlen(argv[1]) > DATA_LEN)
+    {
+        printf("\nRequest length is expected\n");
+        return REQUEST_BIGGER_FAIL;
     }
     printf("\n========New request start=======\n");
 
@@ -310,7 +329,7 @@ int main(int argc, char* argv[])
         return READ_SOCKET_FAIL;
     }
 
-    printf("\nDUT : Data received from assist board is \n%s\n", received_data);
+    printf("\nDUT : Data received from assist board is \n%s\n\n", received_data);
     
     /* Free allocated memory */
     if(received_data)
